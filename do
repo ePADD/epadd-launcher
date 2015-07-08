@@ -2,7 +2,7 @@
 source ~/.bashrc
 
 # build flattened jar
-mvn clean compile assembly:single
+mvn # clean compile assembly:single
 
 # add the needed icons etc.
 cd lib

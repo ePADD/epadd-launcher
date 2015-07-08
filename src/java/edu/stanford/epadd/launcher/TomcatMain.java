@@ -107,7 +107,7 @@ public class TomcatMain {
 	private static void tellUser (Splash splash, String s) { if (splash != null) splash.setSplashText(s); }
 
 	// reads the warName from the classpath, copies it to a tmpdir, and deploys the war at the given path
-	public static Context deployWarAt(String warName, String path) throws IOException, ServletException
+	private static Context deployWarAt(String warName, String path) throws IOException, ServletException
 	{
 		// extract the war to tmpdir
 		final URL warUrl = TomcatMain.class.getClassLoader().getResource(warName);
@@ -281,11 +281,11 @@ public class TomcatMain {
 		options.addOption( "dg", "debug-groups", false, "turn debug messages on for groups");
 		options.addOption( "sp", "start-page", true, "start page");
 		options.addOption( "n", "no-browser-open", false, "no browser open");
-		options.addOption( "ns", "no-shutdown", false, "no auto shutdown");
+	//	options.addOption( "ns", "no-shutdown", false, "no auto shutdown");
 		return options;
 	}
 	
-	public static void launchBrowser(String url, Splash splash) throws BrowserLaunchingInitializingException, UnsupportedOperatingSystemException, IOException, URISyntaxException
+	private static void launchBrowser(String url, Splash splash) throws BrowserLaunchingInitializingException, UnsupportedOperatingSystemException, IOException, URISyntaxException
 	{
 		// we use the browser launcher only for windows to try and skip IE
     	if (System.getProperty("os.name").toLowerCase().indexOf("windows") >= 0) 
@@ -330,6 +330,7 @@ public class TomcatMain {
 		String settingsDir = System.getProperty("user.home") + File.separatorChar + "epadd-settings";
 		String logFile = settingsDir + File.separatorChar + "epadd.log";
 		String launcherLogFile = settingsDir + File.separatorChar + "epadd-launcher.log";
+		String launcherLogFileErr = settingsDir + File.separatorChar + "epadd-launcher.err.log";
 		new File(settingsDir).mkdirs();
 
 		System.setProperty("muse.log", logFile);
@@ -337,7 +338,7 @@ public class TomcatMain {
 		System.out.println ("Set logging to " + logFile);
 		try {
 			out = new PrintStream(new FileOutputStream(launcherLogFile), true /* autoFlush */, "UTF-8");
-			err = new PrintStream(new FileOutputStream(launcherLogFile), true /* autoFlush */, "UTF-8");
+			err = new PrintStream(new FileOutputStream(launcherLogFileErr), true /* autoFlush */, "UTF-8");
 		} catch (Exception e) {
 			out = System.out;
 			err = System.err; // reset them back
@@ -412,7 +413,8 @@ public class TomcatMain {
     		startPage = cmd.getOptionValue("start-page");
         if (cmd.hasOption("base-dir"))
     		baseDir = cmd.getOptionValue("base-dir"); 
-    	
+
+		/*
     	if (!cmd.hasOption("no-shutdown")) {
         	// arrange to kill Muse after a period of time, we don't want the server to run forever
 
@@ -434,16 +436,23 @@ public class TomcatMain {
         	TimerTask tt = new ShutdownTimerTask();
         	timer.schedule (tt, KILL_AFTER_MILLIS);
     	}
+    	*/
         System.setSecurityManager(null); // this is important	
 	}
 	
-	public static void setupResources() throws IOException, ServletException
+	private static void setupResources() throws IOException, ServletException
 	{
         out.println("Setting up Tomcat");
+        // we set this and its read by JSPHelper within the webapp
+        String tmp = System.getProperty("java.io.tmpdir");
+        System.setProperty("muse.container", "tomcat");
+        debugFile = tmp + File.separatorChar + "debug.txt";
+
+        // need to copy crossdomain.xml file and make it available at /crossdomain.xml in the server
 
         server = new Tomcat();
         server.setPort(PORT);
-        String baseDir = System.getProperty("java.io.tmpdir") + File.separator + "epadd";
+        String baseDir = tmp + File.separator + "epadd";
 
         // create the webapps dir under tmpdir, otherwise we see a disturbing error message, it creates a local tomcat.9099 dir for deployment etc.
         // need to first clear the webapps dir, otherwise it seems to not overwrite an existing war. 
@@ -457,21 +466,16 @@ public class TomcatMain {
         if (epaddWebapp == null)
         {
         	err.println ("Aborting... no webapp");
-        	return;
+//        	return;
         }
-     
-        out.println ("Deployed webapp to " + WEBAPP_NAME);
-        
-        // disabled for tomcat - enable if needed
+        else
+            out.println ("Deployed webapp to " + WEBAPP_NAME);
+
+      // disabled for tomcat - enable if needed
         // if in any debug mode, turn blurring off
 //        if (debug)
  //       	webapp1.setAttribute("noblur", true);
         
-        // we set this and its read by JSPHelper within the webapp 
-        System.setProperty("muse.container", "tomcat");
-        
-        // need to copy crossdomain.xml file and make it available at /crossdomain.xml in the server
-		String tmp = System.getProperty("java.io.tmpdir");
 		String xdomainDotXmlDir = tmp + File.separator + "ePADD-crossdomain-xml" + File.separatorChar;
 		new File(xdomainDotXmlDir).mkdirs();
 		
@@ -486,6 +490,7 @@ public class TomcatMain {
         }
         
         out.println ("Deployed crossdomain.xml in dir " + xdomainDotXmlDir);
+        out.println ("ePADD running check URL is " + MUSE_CHECK_URL);
 
         /*
 	    ResourceHandler resource_handler = new ResourceHandler();
@@ -505,8 +510,6 @@ public class TomcatMain {
         }
         */
      	
-        out.println ("ePADD running check URL is " + MUSE_CHECK_URL);
-		debugFile = tmp + File.separatorChar + "debug.txt";
 
 		/*
 		HandlerList hl = new HandlerList();
@@ -518,7 +521,7 @@ public class TomcatMain {
 		*/
 	}
 	
-	public static void shutdownSessions() {
+	private static void shutdownSessions() {
 		out.println ("shutting down sessions...");
         Session[] sessions = epaddWebapp.getManager().findSessions();
         for (Session session: sessions)
@@ -636,7 +639,7 @@ public class TomcatMain {
 	        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 	                public void run() {
 	                        try {
-	                        		shutdownSessions();
+	                       		shutdownSessions();
 	                                server.stop();
 	                                server.destroy();
 	                                debugOut.close();
@@ -646,18 +649,15 @@ public class TomcatMain {
 	                        }
 	                }
 	        }));
-	//        InfoFrame frame = new InfoFrame();
-	//        frame.doShow();
-	
+
 	        boolean success = waitTillPageAlive(MUSE_CHECK_URL, TIMEOUT_SECS);
-	//        frame.updateText ("Opening a browser window");
-	
+
 	        if (success)
 	        {
 	        	try {
 	        		int shutdownPort = PORT + 1; // shut down port is arbitrarily set to port + 1. it is ASSUMED to be free. 
 	        		
-	        		new ShutdownThread(server, shutdownPort).start();
+	        		new ShutdownThread(server, shutdownPort).start(); // this will start a non-daemon thread that keeps the process alive
 	        		out.println ("Listening for ePADD shutdown message on port " + shutdownPort);
 					tellUser (splash, "Listening for ePADD shutdown message on port " + shutdownPort);
 
@@ -709,9 +709,11 @@ public class TomcatMain {
 			if (splash != null)
 				splash.close();
         }
+        // program should not halt here, as ShutdownThread is running as a non-daemon thread.
 		// splashDemo.closeWindow();
 	}
 
+    /** not used any more
 	static class ShutdownTimerTask extends TimerTask {
 		// possibly could tie this timer with user activity
 		public void run() {
@@ -722,6 +724,7 @@ public class TomcatMain {
 			System.exit(0); // kill the program
 		}
 	}
+    */
 
 	// util methods
 	public static void copy_stream_to_file(InputStream is, String filename) throws IOException
@@ -882,7 +885,7 @@ static class ShutdownThread extends Thread {
     public ShutdownThread(Tomcat server, int shutdownPort) {
     	this.server = server;
     	this.shutdownPort = shutdownPort;
-        setDaemon(true);
+        setDaemon(false); // deliberately make it non-daemon so as to keep this program running.
         setName("Stop Tomcat");
         try {
             socket = new ServerSocket(this.shutdownPort, 1, InetAddress.getByName("127.0.0.1"));
