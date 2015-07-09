@@ -113,42 +113,42 @@ public class TomcatMain {
 		final URL warUrl = TomcatMain.class.getClassLoader().getResource(warName);
 		if (warUrl == null)
 		{
-			err.println ("Sorry! Unable to locate file on classpath: " + warName);
+			out.println ("Sorry! Unable to locate file on classpath: " + warName);
 			return null;
 		}
 		InputStream is = warUrl.openStream();
 		String tmp = System.getProperty("java.io.tmpdir");
 		String file = tmp + File.separatorChar + warName;
-		err.println ("Extracting: " + warName + " to " + file + " is=" + is);
+		out.println ("Extracting: " + warName + " to " + file + " is=" + is);
 
 		File existingFile = new File(file);
 		if (existingFile.exists())
-			err.println ("Existing file: " + file);
+			out.println ("Existing file: " + file);
 
 //		if (new File(file).exists())
 		copy_stream_to_file(is, file);
 
 		File newFile = new File(file);
 		if (!newFile.exists()) {
-			err.println ("Sorry! Unable to copy war file: " + file);
+			out.println ("Sorry! Unable to copy war file: " + file);
 			return null;			
 		}
 
-		err.println ("Copied epadd war file with size " + newFile.length() + " bytes to " + newFile.getAbsolutePath());
+		out.println ("Copied epadd war file with size " + newFile.length() + " bytes to " + newFile.getAbsolutePath());
 
 		// clear the tomcat workdir which unfortunately caches jsp-generated java files sometimes and leads to terribly insiduous bugs.
 		String workDir = tmp + File.separator + "epadd" + File.separator + "working";
 		File workFile = new File(workDir); 
 		if (workFile.exists()) {
-			err.println ("Tomcat work dir exists: " + workDir); 
+			out.println ("Tomcat work dir exists: " + workDir); 
 			boolean success = deleteDir (new File(workDir));
 			if (!success) 
-				err.println ("Warning: unable to clear tomcat work dir " + workDir);
+				out.println ("Warning: unable to clear tomcat work dir " + workDir);
 			else
-				err.println ("Cool... able to clear tomcat work dir " + workDir);
+				out.println ("Cool... able to clear tomcat work dir " + workDir);
 		} 
 		else 
-			err.println ("Good, tomcat work dir does not already exist: " + workDir); 
+			out.println ("Good, tomcat work dir does not already exist: " + workDir); 
 		
 		return server.addWebapp("/epadd", new File(file).getAbsolutePath());
 	}
@@ -167,7 +167,7 @@ public class TomcatMain {
                                 boolean success = deleteDir(new File(f, children[i]));
                                 if (!success)
                                 {
-                                        System.err.println("warning: failed to delete file " + f);
+                                        System.out.println("warning: failed to delete file " + f);
                                         return false;
                                 }
                         }
@@ -190,16 +190,19 @@ public class TomcatMain {
 			// see "Maintaining the session" at http://stackoverflow.com/questions/2793150/how-to-use-java-net-urlconnection-to-fire-and-handle-http-requests
 			CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
 
-			out.println("Testing liveness at " + url);
+			out.println("Testing for already running ePADD by probing " + url);
 			HttpURLConnection u = (HttpURLConnection) new URL(url).openConnection();
 			if (u.getResponseCode() == 200)
 			{
 				u.disconnect();
-				return true;
+                out.println("ePADD is already running!");
+
+                return true;
 			}
 			u.disconnect();
 		} catch (ConnectException ce) { }
-		return false;
+        out.println("Good, ePADD is not already running");
+        return false;
 	}
 
 	private static boolean killRunningServer(String url) throws IOException
@@ -209,7 +212,7 @@ public class TomcatMain {
 			// throws a connect exception if the server is not even running
 			// so catch it and return false
 			String http = url + "/exit.jsp?message=Shutdown%20request%20from%20a%20different%20instance%20of%20ePADD"; // version num spaces and brackets screw up the URL connection
-			err.println ("Sending a kill request to " + http);
+			out.println ("Sending a kill request to " + http);
 			HttpURLConnection u = (HttpURLConnection) new URL(http).openConnection();
 			u.connect();
 			if (u.getResponseCode() == 200)
@@ -335,14 +338,14 @@ public class TomcatMain {
 
 		System.setProperty("muse.log", logFile);
 
-		System.out.println ("Set logging to " + logFile);
+		System.out.println("Set logging to " + logFile);
 		try {
 			out = new PrintStream(new FileOutputStream(launcherLogFile), true /* autoFlush */, "UTF-8");
 			err = new PrintStream(new FileOutputStream(launcherLogFileErr), true /* autoFlush */, "UTF-8");
 		} catch (Exception e) {
 			out = System.out;
 			err = System.err; // reset them back
-			System.err.println ("Error redirecting out and err streams to " + launcherLogFile);
+			System.out.println ("Error redirecting out and err streams to " + launcherLogFile);
 			e.printStackTrace();
 		}
 	}
@@ -442,6 +445,7 @@ public class TomcatMain {
 	
 	private static void setupResources() throws IOException, ServletException
 	{
+        out.println("Starting up at time " + formatDateLong(new GregorianCalendar()));
         out.println("Setting up Tomcat");
         // we set this and its read by JSPHelper within the webapp
         String tmp = System.getProperty("java.io.tmpdir");
@@ -455,41 +459,64 @@ public class TomcatMain {
         String baseDir = tmp + File.separator + "epadd";
 
         // create the webapps dir under tmpdir, otherwise we see a disturbing error message, it creates a local tomcat.9099 dir for deployment etc.
-        // need to first clear the webapps dir, otherwise it seems to not overwrite an existing war. 
-        FileUtils.deleteDirectory(new File(baseDir + File.separator + "webapps"));
+        // important: need to first clear the webapps and work dirs, otherwise it sometimes picks up a previous version of the war
+        String webappsDir = baseDir + File.separator + "webapps";
+        File webappsDirFile = new File(webappsDir);
+        if (webappsDirFile.exists()) {
+            out.println ("Clearing Tomcat webapps dir: " + webappsDir);
+            FileUtils.deleteDirectory(webappsDirFile);
+            out.println("Done Tomcat clearing webapps dir: " + webappsDir);
+        }
         new File(baseDir + File.separator + "webapps").mkdirs();
+
+        String workDir = baseDir + File.separator + "work";
+        File workDirFile = new File(workDir);
+        if (workDirFile.exists()) {
+            out.println ("Clearing Tomcat work dir: " + workDir);
+            FileUtils.deleteDirectory(workDirFile);
+            out.println("Done clearing Tomcat work dir: " + workDir);
+        }
+        new File(baseDir + File.separator + "work").mkdirs();
+
         server.setBaseDir(baseDir);
-		err.println("Starting up at time " + formatDateLong(new GregorianCalendar()));
-        err.println ("Basedir set to " + baseDir);
+        out.println ("Basedir set to " + baseDir);
 
 		epaddWebapp = deployWarAt("epadd.war", WEBAPP_NAME);
         if (epaddWebapp == null)
         {
-        	err.println ("Aborting... no webapp");
+        	out.println("Aborting... no webapp");
 //        	return;
         }
         else
             out.println ("Deployed webapp to " + WEBAPP_NAME);
 
-      // disabled for tomcat - enable if needed
-        // if in any debug mode, turn blurring off
-//        if (debug)
- //       	webapp1.setAttribute("noblur", true);
-        
-		String xdomainDotXmlDir = tmp + File.separator + "ePADD-crossdomain-xml" + File.separatorChar;
-		new File(xdomainDotXmlDir).mkdirs();
-		
-		final URL url = TomcatMain.class.getClassLoader().getResource("crossdomain.xml");
+		String tmpResourceDir = tmp + File.separator + "ePADD-crossdomain-xml" + File.separatorChar;
+		new File(tmpResourceDir).mkdirs();
+
+        String resource = "crossdomain.xml";
         try {
+            final URL url = TomcatMain.class.getClassLoader().getResource(resource);
 			InputStream is = url.openStream();
-			String file = xdomainDotXmlDir + File.separatorChar + "crossdomain.xml";
+			String file = tmpResourceDir + File.separatorChar + resource;
 			copy_stream_to_file(is, file);
-			server.addWebapp("/", new File(xdomainDotXmlDir).getAbsolutePath()); // See http://grokbase.com/t/tomcat/users/131xsqrrm2/embedded-tomcat-how-to-use-addcontext-for-docbase
+			server.addWebapp("/", new File(tmpResourceDir).getAbsolutePath()); // See http://grokbase.com/t/tomcat/users/131xsqrrm2/embedded-tomcat-how-to-use-addcontext-for-docbase
+            out.println("Deployed resource " + resource + " from dir " + tmpResourceDir + " at /");
         } catch (Exception e) {
-        	err.println ("Aborting copy of crossdomain.xml..." + e);
+        	out.println ("Aborting copy of resource " + resource + ": " + e);
         }
-        
-        out.println ("Deployed crossdomain.xml in dir " + xdomainDotXmlDir);
+
+        resource = "index.html";
+        try {
+            final URL url = TomcatMain.class.getClassLoader().getResource(resource);
+            InputStream is = url.openStream();
+            String file = tmpResourceDir + File.separatorChar + resource;
+            copy_stream_to_file(is, file);
+            server.addWebapp("/", new File(tmpResourceDir).getAbsolutePath()); // See http://grokbase.com/t/tomcat/users/131xsqrrm2/embedded-tomcat-how-to-use-addcontext-for-docbase
+            out.println("Deployed resource " + resource + " from dir " + tmpResourceDir + " at /");
+        } catch (Exception e) {
+            out.println ("Aborting copy of resource " + resource + ": " + e);
+        }
+
         out.println ("ePADD running check URL is " + MUSE_CHECK_URL);
 
         /*
@@ -546,13 +573,13 @@ public class TomcatMain {
 			System.out.println ("epadd running in discovery mode!");
 
 		tellUser (splash, "Setting up logging...");
-		setupLogging();
-		tellUser (splash, "Setting up shutdown port...");
+        setupLogging();
+        tellUser(splash, "Setting up shutdown port...");
 		basicSetup(args);
         BASE_URL = "http://localhost:" + PORT + "/" + WEBAPP_NAME;
-        MUSE_CHECK_URL = BASE_URL + "/js/muse.js"; // for quick check of existing muse or successful start up. BASE_URL may take some time to run and may not always be available now that we set dirAllowed to false and public mode does not serve /muse.
+        MUSE_CHECK_URL = BASE_URL + "/js/epadd.js"; // for quick check of existing muse or successful start up. BASE_URL may take some time to run and may not always be available now that we set dirAllowed to false and public mode does not serve /muse.
 
-		tellUser (splash, "Log file: " + debugFile + "***\n");
+        tellUser (splash, "Log file: " + debugFile + "***\n");
 
 		out.println ("Starting up ePADD on the local computer at " + BASE_URL + ", " + formatDateLong(new GregorianCalendar()));
 		out.println ("***For troubleshooting information, see this file: " + debugFile + "***\n");
@@ -631,7 +658,7 @@ public class TomcatMain {
 		        	f.delete(); // particular problem on windows :-(
 				debugOut1 = new PrintStream(new FileOutputStream(debugFile), false, "UTF-8");
 	        } catch (IOException ioe) {
-	        	err.println ("Warning: failed to delete debug file " + debugFile + " : " + ioe);
+	        	out.println ("Warning: failed to delete debug file " + debugFile + " : " + ioe);
 	        }
 	
 	        final PrintStream debugOut = debugOut1;
@@ -666,7 +693,7 @@ public class TomcatMain {
 	        	}
 	
 	        	try { setupSystemTrayIcon(); }
-	        	catch (Exception e) { err.println ("Unable to setup system tray icon: " + e); e.printStackTrace(err); }
+	        	catch (Exception e) { out.println ("Unable to setup system tray icon: " + e); e.printStackTrace(err); }
 	        	
 	        	// open browser window
 	        	if (browserOpen)
@@ -849,7 +876,7 @@ public class TomcatMain {
 	         try {
 	             tray.add(trayIcon);
 	         } catch (AWTException e) {
-	             err.println(e);
+	             out.println(e);
 	         }
 	         // ...
 	     } else {

@@ -6,13 +6,13 @@ mvn # clean compile assembly:single
 
 # add the needed icons etc.
 cd lib
-jar uvf ../target/epadd-standalone-jar-with-dependencies.jar splash-image.png muse-icon.png edu/stanford/ejalbert/launching/windows/windowsConfig.properties 
+jar uvf ../target/epadd-standalone-jar-with-dependencies.jar index.html splash-image.png muse-icon.png edu/stanford/ejalbert/launching/windows/windowsConfig.properties 
 
 # make a replica of what we have so far, for discovery
 cp ../target/epadd-standalone-jar-with-dependencies.jar ../target/epadd-discovery-standalone-jar-with-dependencies.jar 
 
 # add crossdomain.xml only to full epadd, not to discovery
-jar uvf ../target/epadd-standalone-jar-with-dependencies.jar crossdomain.xml
+jar uvf ../target/epadd-standalone-jar-with-dependencies.jar crossdomain.xml 
 
 # add wars to standalone-jar
 cd ../../epadd/target
