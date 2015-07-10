@@ -567,14 +567,17 @@ public class TomcatMain {
 	public static void main (String args[]) throws Exception
 	{
 		Splash splash = null;
-		if (System.getProperty("epadd.mode.discovery") == null)
+
+        boolean headless = System.getProperty("epadd.mode.discovery") != null;
+		if (!headless)
 			splash = new Splash();
-		else
-			System.out.println ("epadd running in discovery mode!");
+		else {
+            System.out.println("epadd running in headless discovery mode!");
+            browserOpen = false;
+        }
 
 		tellUser (splash, "Setting up logging...");
         setupLogging();
-        tellUser(splash, "Setting up shutdown port...");
 		basicSetup(args);
         BASE_URL = "http://localhost:" + PORT + "/" + WEBAPP_NAME;
         MUSE_CHECK_URL = BASE_URL + "/js/epadd.js"; // for quick check of existing muse or successful start up. BASE_URL may take some time to run and may not always be available now that we set dirAllowed to false and public mode does not serve /muse.
@@ -662,7 +665,7 @@ public class TomcatMain {
 	        }
 	
 	        final PrintStream debugOut = debugOut1;
-	
+
 	        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 	                public void run() {
 	                        try {
@@ -683,8 +686,9 @@ public class TomcatMain {
 	        {
 	        	try {
 	        		int shutdownPort = PORT + 1; // shut down port is arbitrarily set to port + 1. it is ASSUMED to be free. 
-	        		
-	        		new ShutdownThread(server, shutdownPort).start(); // this will start a non-daemon thread that keeps the process alive
+                    tellUser(splash, "Setting up shutdown port...");
+
+                    new ShutdownThread(server, shutdownPort).start(); // this will start a non-daemon thread that keeps the process alive
 	        		out.println ("Listening for ePADD shutdown message on port " + shutdownPort);
 					tellUser (splash, "Listening for ePADD shutdown message on port " + shutdownPort);
 
