@@ -1,5 +1,6 @@
 #!/bin/bash -u -e
 source ~/.bashrc
+RESOURCES_DIR=$HOME/epadd-settings/resources
 
 # build flattened jar
 mvn # clean compile assembly:single
@@ -17,6 +18,20 @@ jar uvf ../target/epadd-standalone-jar-with-dependencies.jar crossdomain.xml
 # add wars to standalone-jar
 cd ../../epadd/target
 /bin/cp -p epadd-0.0.1-SNAPSHOT.war epadd.war
+mkdir tmp
+cd tmp
+mkdir WEB-INF;mkdir WEB-INF/classes;
+for F in $RESOURCES_DIR/*;
+do
+    cp -R $F WEB-INF/classes/
+done
+for R in WEB-INF/classes/*;
+do
+    echo "Updating with $R"
+    jar uvf ../epadd.war $R
+done
+cd ..
+rm -R tmp
 jar uvf ../../epadd-launcher/target/epadd-standalone-jar-with-dependencies.jar epadd.war
 
 # add discovery war to discovery standalone
