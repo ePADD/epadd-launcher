@@ -566,45 +566,45 @@ public class TomcatMain {
 
 	public static void main (String args[]) throws Exception
 	{
-		Splash splash = null;
+	    Splash splash = null;
 
-        boolean headless = System.getProperty("epadd.mode.discovery") != null;
-		if (!headless)
-			splash = new Splash();
-		else {
-            System.out.println("epadd running in headless discovery mode!");
-            browserOpen = false;
-        }
+	    boolean headless = System.getProperty("epadd.mode.discovery") != null;
+	    if (!headless)
+		splash = new Splash();
+	    else {
+		System.out.println("epadd running in headless discovery mode!");
+		browserOpen = false;
+	    }
 
-		tellUser (splash, "Setting up logging...");
-        setupLogging();
-		basicSetup(args);
-        BASE_URL = "http://localhost:" + PORT + "/" + WEBAPP_NAME;
-        MUSE_CHECK_URL = BASE_URL + "/js/epadd.js"; // for quick check of existing muse or successful start up. BASE_URL may take some time to run and may not always be available now that we set dirAllowed to false and public mode does not serve /muse.
+	    tellUser (splash, "Setting up logging...");
+	    setupLogging();
+	    basicSetup(args);
+	    BASE_URL = "http://localhost:" + PORT + "/" + WEBAPP_NAME;
+	    MUSE_CHECK_URL = BASE_URL + "/js/epadd.js"; // for quick check of existing muse or successful start up. BASE_URL may take some time to run and may not always be available now that we set dirAllowed to false and public mode does not serve /muse.
 
-        tellUser (splash, "Log file: " + debugFile + "***\n");
+	    tellUser (splash, "Log file: " + debugFile + "***\n");
 
-		out.println ("Starting up ePADD on the local computer at " + BASE_URL + ", " + formatDateLong(new GregorianCalendar()));
-		out.println ("***For troubleshooting information, see this file: " + debugFile + "***\n");
-    	out.println ("Current directory = " + System.getProperty("user.dir") + ", home directory = " + System.getProperty("user.home"));
-    	out.println("Memory status at the beginning: " + getMemoryStats());
-    	if (Runtime.getRuntime().maxMemory()/MB < 512)
+	    out.println ("Starting up ePADD on the local computer at " + BASE_URL + ", " + formatDateLong(new GregorianCalendar()));
+	    out.println ("***For troubleshooting information, see this file: " + debugFile + "***\n");
+	    out.println ("Current directory = " + System.getProperty("user.dir") + ", home directory = " + System.getProperty("user.home"));
+	    out.println("Memory status at the beginning: " + getMemoryStats());
+	    if (Runtime.getRuntime().maxMemory()/MB < 512)
     		aggressiveWarn ("You are probably running ePADD without enough memory. \nIf you launched ePADD from the command line, you can increase memory with an option like java -Xmx1g", 2000);
-		tellUser (splash, "Memory: " + getMemoryStats());
+	    tellUser (splash, "Memory: " + getMemoryStats());
 
-		// handle frequent error of user trying to launch another server when its already on
-		// server.start() usually takes a few seconds to return
-		// after that it takes a few seconds for the webapp to deploy
-        // ignore any exceptions along the way and assume not if we can't prove it is alive
-        boolean urlAlive = false;
-        try { urlAlive = isURLAlive(MUSE_CHECK_URL); }
-        catch (Exception e) { out.println ("Exception: e"); e.printStackTrace(out); }
+	    // handle frequent error of user trying to launch another server when its already on
+	    // server.start() usually takes a few seconds to return
+	    // after that it takes a few seconds for the webapp to deploy
+	    // ignore any exceptions along the way and assume not if we can't prove it is alive
+	    boolean urlAlive = false;
+	    try { urlAlive = isURLAlive(MUSE_CHECK_URL); }
+	    catch (Exception e) { out.println ("Exception: e"); e.printStackTrace(out); }
 
-        boolean disableStart = false;
-        if (urlAlive)
+	    boolean disableStart = false;
+	    if (urlAlive)
 		{
-			out.println ("Oh! ePADD already running at: " + BASE_URL + ", will shut it down!");
-			tellUser (splash, "ePADD already running at: " + BASE_URL + ", will shut it down!");
+	       	out.println ("Oh! ePADD already running at: " + BASE_URL + ", will shut it down!");
+		tellUser (splash, "ePADD already running at: " + BASE_URL + ", will shut it down!");
 			killRunningServer(BASE_URL);
 
 			boolean killed = false;
