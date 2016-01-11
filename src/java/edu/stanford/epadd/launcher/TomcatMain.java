@@ -455,14 +455,14 @@ public class TomcatMain {
 	    // need to copy crossdomain.xml file and make it available at /crossdomain.xml in the server
 
 	    server = new Tomcat();
-	    //On Terry's archive, to update the correspondents list, we need a cushion of 10MB post size
-	    server.getConnector().setMaxPostSize(10000000);
 	    server.setPort(PORT);
 	    String baseDir = tmp + File.separator + "epadd";
-	    
 	    // create the webapps dir under tmpdir, otherwise we see a disturbing error message, it creates a local tomcat.9099 dir for deployment etc.
 	    // important: need to first clear the webapps and work dirs, otherwise it sometimes picks up a previous version of the war
 	    String webappsDir = baseDir + File.separator + "webapps";
+	    System.err.println("base dir: "+baseDir);
+	    System.err.println("tmp: "+tmp+", "+System.getProperty("java.io.tmpdir"));
+	    System.err.println("webapps dir: "+webappsDir);
 	    File webappsDirFile = new File(webappsDir);
 	    if (webappsDirFile.exists()) {
 		out.println ("Clearing Tomcat webapps dir: " + webappsDir);
@@ -470,7 +470,7 @@ public class TomcatMain {
 		out.println("Done Tomcat clearing webapps dir: " + webappsDir);
 	    }
 	    new File(baseDir + File.separator + "webapps").mkdirs();
-	    
+	    System.err.println("Created: "+baseDir+File.separator+"webapps"+" folder");
 	    String workDir = baseDir + File.separator + "work";
 	    File workDirFile = new File(workDir);
 	    if (workDirFile.exists()) {
@@ -479,6 +479,7 @@ public class TomcatMain {
 		out.println("Done clearing Tomcat work dir: " + workDir);
 	    }
 	    new File(baseDir + File.separator + "work").mkdirs();
+	    System.err.println("created:" + baseDir+File.separator+"work folder");
 	    
 	    server.setBaseDir(baseDir);
 	    out.println ("Basedir set to " + baseDir);
@@ -521,6 +522,9 @@ public class TomcatMain {
 	    
 	    out.println ("ePADD running check URL is " + MUSE_CHECK_URL);
 	    
+	    //Note: touch the connector only after setting the base dir and other setting params above, else the none of the settings would work
+	    //On Terry's archive, to update the correspondents list, we need a cushion of 10MB post size
+	    server.getConnector().setMaxPostSize(10000000);
 	    /*
 	      ResourceHandler resource_handler = new ResourceHandler();
 	      //        resource_handler.setWelcomeFiles(new String[]{ "index.html" });
