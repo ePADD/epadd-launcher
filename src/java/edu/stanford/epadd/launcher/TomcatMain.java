@@ -352,215 +352,217 @@ public class TomcatMain {
 	
 	private static void basicSetup(String[] args) throws ParseException
 	{
-		// set javawebstart.version to a dummy value if not already set (might happen when running with java -jar from cmd line)
-		// exit.jsp doesn't allow us to showdown unless this prop is set
-		if (System.getProperty("javawebstart.version") == null)
-			System.setProperty("javawebstart.version", "UNKNOWN");
-
-    	if (args.length > 0)
-    	{
-        	out.print (args.length + " argument(s): ");
-        	for (int i = 0; i < args.length; i++)
+	    // set javawebstart.version to a dummy value if not already set (might happen when running with java -jar from cmd line)
+	    // exit.jsp doesn't allow us to showdown unless this prop is set
+	    if (System.getProperty("javawebstart.version") == null)
+		System.setProperty("javawebstart.version", "UNKNOWN");
+	    
+	    if (args.length > 0)
+		{
+		    out.print (args.length + " argument(s): ");
+		    for (int i = 0; i < args.length; i++)
         		out.print (args[i] + " ");
-        	out.println();
-    	}
+		    out.println();
+		}
     	
-    	Options options = getOpt();
-    	CommandLineParser parser = new PosixParser();
-    	CommandLine cmd = parser.parse(options, args);
-        if (cmd.hasOption("help"))
-        {
-        	HelpFormatter formatter = new HelpFormatter();
-        	formatter.printHelp( "ePADD batch mode", options);
-        	return;
-        }
-
-        debug = false;
-        if (cmd.hasOption("debug"))
-        {
-			URL url = ClassLoader.getSystemResource("log4j.properties.debug");
-        	out.println ("Loading logging configuration from url: " + url);
-            PropertyConfigurator.configure(url);
-            debug = true;
-        } else if (cmd.hasOption("debug-address-book"))
-        {
-			URL url = ClassLoader.getSystemResource("log4j.properties.debug.ab");
-        	out.println ("Loading logging configuration from url: " + url);
-            PropertyConfigurator.configure(url);
-            debug = false;
-        }
-        else if (cmd.hasOption("debug-groups"))
-        {
-			URL url = ClassLoader.getSystemResource("log4j.properties.debug.groups");
-        	out.println ("Loading logging configuration from url: " + url);
-            PropertyConfigurator.configure(url);
-            debug = false;
-        }
-        
-        if (cmd.hasOption("no-browser-open") || System.getProperty("nobrowseropen") != null)
+	    Options options = getOpt();
+	    CommandLineParser parser = new PosixParser();
+	    CommandLine cmd = parser.parse(options, args);
+	    if (cmd.hasOption("help"))
+		{
+		    HelpFormatter formatter = new HelpFormatter();
+		    formatter.printHelp( "ePADD batch mode", options);
+		    return;
+		}
+	    
+	    debug = false;
+	    if (cmd.hasOption("debug"))
+		{
+		    URL url = ClassLoader.getSystemResource("log4j.properties.debug");
+		    out.println ("Loading logging configuration from url: " + url);
+		    PropertyConfigurator.configure(url);
+		    debug = true;
+		} else if (cmd.hasOption("debug-address-book"))
+		{
+		    URL url = ClassLoader.getSystemResource("log4j.properties.debug.ab");
+		    out.println ("Loading logging configuration from url: " + url);
+		    PropertyConfigurator.configure(url);
+		    debug = false;
+		}
+	    else if (cmd.hasOption("debug-groups"))
+		{
+		    URL url = ClassLoader.getSystemResource("log4j.properties.debug.groups");
+		    out.println ("Loading logging configuration from url: " + url);
+		    PropertyConfigurator.configure(url);
+		    debug = false;
+		}
+	    
+	    if (cmd.hasOption("no-browser-open") || System.getProperty("nobrowseropen") != null)
         	browserOpen = false;
-
-        if (cmd.hasOption("port"))
-        {
-    		String portStr = cmd.getOptionValue('p');
-    		try { 
+	    
+	    if (cmd.hasOption("port"))
+		{
+		    String portStr = cmd.getOptionValue('p');
+		    try { 
     			PORT = Integer.parseInt (portStr); 
     			String mesg = " Running on port: " + PORT;
     			out.println (mesg);
-    		} catch (NumberFormatException nfe) {
+		    } catch (NumberFormatException nfe) {
     			out.println ("invalid port number " + portStr);
-    		}
-        } 
-
-        if (cmd.hasOption("start-page"))
+		    }
+		} 
+	    
+	    if (cmd.hasOption("start-page"))
     		startPage = cmd.getOptionValue("start-page");
-        if (cmd.hasOption("base-dir"))
+	    if (cmd.hasOption("base-dir"))
     		baseDir = cmd.getOptionValue("base-dir"); 
-
-		/*
-    	if (!cmd.hasOption("no-shutdown")) {
-        	// arrange to kill Muse after a period of time, we don't want the server to run forever
-
-        	// i clearly have too much time on my hands right now...
-        	long secs = KILL_AFTER_MILLIS/1000;
-        	long hh = secs/3600;
-        	long mm = (secs%3600)/60;
-        	long ss = secs % (60);
-        	out.print ("ePADD will shut down automatically after ");
-        	if (hh != 0)
-        		out.print (hh  + " hours ");
-        	if (mm != 0 || (hh != 0 && ss != 0))
-        		out.print (mm + " minutes");
-        	if (ss != 0)
-        		out.print (ss + " seconds");
-        	out.println();
-
-        	Timer timer = new Timer(); 
-        	TimerTask tt = new ShutdownTimerTask();
-        	timer.schedule (tt, KILL_AFTER_MILLIS);
-    	}
-    	*/
-        System.setSecurityManager(null); // this is important	
+	    
+	    /*
+	      if (!cmd.hasOption("no-shutdown")) {
+	      // arrange to kill Muse after a period of time, we don't want the server to run forever
+	      
+	      // i clearly have too much time on my hands right now...
+	      long secs = KILL_AFTER_MILLIS/1000;
+	      long hh = secs/3600;
+	      long mm = (secs%3600)/60;
+	      long ss = secs % (60);
+	      out.print ("ePADD will shut down automatically after ");
+	      if (hh != 0)
+	      out.print (hh  + " hours ");
+	      if (mm != 0 || (hh != 0 && ss != 0))
+	      out.print (mm + " minutes");
+	      if (ss != 0)
+	      out.print (ss + " seconds");
+	      out.println();
+	      
+	      Timer timer = new Timer(); 
+	      TimerTask tt = new ShutdownTimerTask();
+	      timer.schedule (tt, KILL_AFTER_MILLIS);
+	      }
+	    */
+	    System.setSecurityManager(null); // this is important	
 	}
 	
 	private static void setupResources() throws IOException, ServletException
 	{
-        out.println("Starting up at time " + formatDateLong(new GregorianCalendar()));
-        out.println("Setting up Tomcat");
-        // we set this and its read by JSPHelper within the webapp
-        String tmp = System.getProperty("java.io.tmpdir");
-        System.setProperty("muse.container", "tomcat");
-        debugFile = tmp + File.separatorChar + "debug.txt";
+	    out.println("Starting up at time " + formatDateLong(new GregorianCalendar()));
+	    out.println("Setting up Tomcat");
+	    // we set this and its read by JSPHelper within the webapp
+	    String tmp = System.getProperty("java.io.tmpdir");
+	    System.setProperty("muse.container", "tomcat");
+	    debugFile = tmp + File.separatorChar + "debug.txt";
+	    
+	    // need to copy crossdomain.xml file and make it available at /crossdomain.xml in the server
 
-        // need to copy crossdomain.xml file and make it available at /crossdomain.xml in the server
+	    server = new Tomcat();
+	    //On Terry's archive, to update the correspondents list, we need a cushion of 10MB post size
+	    server.getConnector().setMaxPostSize(10000000);
+	    server.setPort(PORT);
+	    String baseDir = tmp + File.separator + "epadd";
+	    
+	    // create the webapps dir under tmpdir, otherwise we see a disturbing error message, it creates a local tomcat.9099 dir for deployment etc.
+	    // important: need to first clear the webapps and work dirs, otherwise it sometimes picks up a previous version of the war
+	    String webappsDir = baseDir + File.separator + "webapps";
+	    File webappsDirFile = new File(webappsDir);
+	    if (webappsDirFile.exists()) {
+		out.println ("Clearing Tomcat webapps dir: " + webappsDir);
+		FileUtils.deleteDirectory(webappsDirFile);
+		out.println("Done Tomcat clearing webapps dir: " + webappsDir);
+	    }
+	    new File(baseDir + File.separator + "webapps").mkdirs();
+	    
+	    String workDir = baseDir + File.separator + "work";
+	    File workDirFile = new File(workDir);
+	    if (workDirFile.exists()) {
+		out.println ("Clearing Tomcat work dir: " + workDir);
+		FileUtils.deleteDirectory(workDirFile);
+		out.println("Done clearing Tomcat work dir: " + workDir);
+	    }
+	    new File(baseDir + File.separator + "work").mkdirs();
+	    
+	    server.setBaseDir(baseDir);
+	    out.println ("Basedir set to " + baseDir);
+	    
+	    epaddWebapp = deployWarAt("epadd.war", WEBAPP_NAME);
+	    if (epaddWebapp == null)
+		{
+		    out.println("Aborting... no webapp");
+		    //        	return;
+		}
+	    else
+		out.println ("Deployed webapp to " + WEBAPP_NAME);
 
-        server = new Tomcat();
-        server.setPort(PORT);
-        String baseDir = tmp + File.separator + "epadd";
+	    String tmpResourceDir = tmp + File.separator + "ePADD-crossdomain-xml" + File.separatorChar;
+	    new File(tmpResourceDir).mkdirs();
 
-        // create the webapps dir under tmpdir, otherwise we see a disturbing error message, it creates a local tomcat.9099 dir for deployment etc.
-        // important: need to first clear the webapps and work dirs, otherwise it sometimes picks up a previous version of the war
-        String webappsDir = baseDir + File.separator + "webapps";
-        File webappsDirFile = new File(webappsDir);
-        if (webappsDirFile.exists()) {
-            out.println ("Clearing Tomcat webapps dir: " + webappsDir);
-            FileUtils.deleteDirectory(webappsDirFile);
-            out.println("Done Tomcat clearing webapps dir: " + webappsDir);
-        }
-        new File(baseDir + File.separator + "webapps").mkdirs();
-
-        String workDir = baseDir + File.separator + "work";
-        File workDirFile = new File(workDir);
-        if (workDirFile.exists()) {
-            out.println ("Clearing Tomcat work dir: " + workDir);
-            FileUtils.deleteDirectory(workDirFile);
-            out.println("Done clearing Tomcat work dir: " + workDir);
-        }
-        new File(baseDir + File.separator + "work").mkdirs();
-
-        server.setBaseDir(baseDir);
-        out.println ("Basedir set to " + baseDir);
-
-		epaddWebapp = deployWarAt("epadd.war", WEBAPP_NAME);
-        if (epaddWebapp == null)
-        {
-        	out.println("Aborting... no webapp");
-//        	return;
-        }
-        else
-            out.println ("Deployed webapp to " + WEBAPP_NAME);
-
-		String tmpResourceDir = tmp + File.separator + "ePADD-crossdomain-xml" + File.separatorChar;
-		new File(tmpResourceDir).mkdirs();
-
-        String resource = "crossdomain.xml";
-        try {
-            final URL url = TomcatMain.class.getClassLoader().getResource(resource);
-			InputStream is = url.openStream();
-			String file = tmpResourceDir + File.separatorChar + resource;
-			copy_stream_to_file(is, file);
-			server.addWebapp("/", new File(tmpResourceDir).getAbsolutePath()); // See http://grokbase.com/t/tomcat/users/131xsqrrm2/embedded-tomcat-how-to-use-addcontext-for-docbase
-            out.println("Deployed resource " + resource + " from dir " + tmpResourceDir + " at /");
-        } catch (Exception e) {
+	    String resource = "crossdomain.xml";
+	    try {
+		final URL url = TomcatMain.class.getClassLoader().getResource(resource);
+		InputStream is = url.openStream();
+		String file = tmpResourceDir + File.separatorChar + resource;
+		copy_stream_to_file(is, file);
+		server.addWebapp("/", new File(tmpResourceDir).getAbsolutePath()); // See http://grokbase.com/t/tomcat/users/131xsqrrm2/embedded-tomcat-how-to-use-addcontext-for-docbase
+		out.println("Deployed resource " + resource + " from dir " + tmpResourceDir + " at /");
+	    } catch (Exception e) {
         	out.println ("Aborting copy of resource " + resource + ": " + e);
-        }
-
-        resource = "index.html";
-        try {
-            final URL url = TomcatMain.class.getClassLoader().getResource(resource);
-            InputStream is = url.openStream();
-            String file = tmpResourceDir + File.separatorChar + resource;
-            copy_stream_to_file(is, file);
-            server.addWebapp("/", new File(tmpResourceDir).getAbsolutePath()); // See http://grokbase.com/t/tomcat/users/131xsqrrm2/embedded-tomcat-how-to-use-addcontext-for-docbase
-            out.println("Deployed resource " + resource + " from dir " + tmpResourceDir + " at /");
-        } catch (Exception e) {
-            out.println ("Aborting copy of resource " + resource + ": " + e);
-        }
-
-        out.println ("ePADD running check URL is " + MUSE_CHECK_URL);
-
-        /*
-	    ResourceHandler resource_handler = new ResourceHandler();
-//        resource_handler.setWelcomeFiles(new String[]{ "index.html" });
-        resource_handler.setResourceBase(tmp);
-*/        
-        // set the header buffer size in the connectors, default is a ridiculous 4K, which causes failures any time there is
-        // is a large request, such as selecting a few hundred folders. (even for posts!)
-        // usually there is only one SocketConnector, so we just put the setHeaderBufferSize in a loop.
-        /*
-        Connector conns[] = server.getConnectors();
-        for (Connector conn: conns)
-        {
-        	int NEW_BUFSIZE = 1000000;
-        	// out.println ("Connector " + conn + " buffer size is " + conn.getHeaderBufferSize() + " setting to " + NEW_BUFSIZE);
-        	conn.setHeaderBufferSize(NEW_BUFSIZE);
-        }
-        */
-     	
-
-		/*
-		HandlerList hl = new HandlerList();
-		if (webapp0 != null)
-			hl.setHandlers(new Handler[]{webapp1, webapp0, resource_handler});
-		else
-			hl.setHandlers(new Handler[]{webapp1, resource_handler});
-		server.setHandler(hl);
-		*/
+	    }
+	    
+	    resource = "index.html";
+	    try {
+		final URL url = TomcatMain.class.getClassLoader().getResource(resource);
+		InputStream is = url.openStream();
+		String file = tmpResourceDir + File.separatorChar + resource;
+		copy_stream_to_file(is, file);
+		server.addWebapp("/", new File(tmpResourceDir).getAbsolutePath()); // See http://grokbase.com/t/tomcat/users/131xsqrrm2/embedded-tomcat-how-to-use-addcontext-for-docbase
+		out.println("Deployed resource " + resource + " from dir " + tmpResourceDir + " at /");
+	    } catch (Exception e) {
+		out.println ("Aborting copy of resource " + resource + ": " + e);
+	    }
+	    
+	    out.println ("ePADD running check URL is " + MUSE_CHECK_URL);
+	    
+	    /*
+	      ResourceHandler resource_handler = new ResourceHandler();
+	      //        resource_handler.setWelcomeFiles(new String[]{ "index.html" });
+	      resource_handler.setResourceBase(tmp);
+	    */        
+	    // set the header buffer size in the connectors, default is a ridiculous 4K, which causes failures any time there is
+	    // is a large request, such as selecting a few hundred folders. (even for posts!)
+	    // usually there is only one SocketConnector, so we just put the setHeaderBufferSize in a loop.
+	    /*
+	      Connector conns[] = server.getConnectors();
+	      for (Connector conn: conns)
+	      {
+	      int NEW_BUFSIZE = 1000000;
+	      // out.println ("Connector " + conn + " buffer size is " + conn.getHeaderBufferSize() + " setting to " + NEW_BUFSIZE);
+	      conn.setHeaderBufferSize(NEW_BUFSIZE);
+	      }
+	    */
+	    
+	    
+	    /*
+	      HandlerList hl = new HandlerList();
+	      if (webapp0 != null)
+	      hl.setHandlers(new Handler[]{webapp1, webapp0, resource_handler});
+	      else
+	      hl.setHandlers(new Handler[]{webapp1, resource_handler});
+	      server.setHandler(hl);
+	    */
 	}
 	
 	private static void shutdownSessions() {
 		out.println ("shutting down sessions...");
-        Session[] sessions = epaddWebapp.getManager().findSessions();
-        for (Session session: sessions)
-        {
-        	if (session instanceof HttpSession)
-        		try {
+		Session[] sessions = epaddWebapp.getManager().findSessions();
+		for (Session session: sessions)
+		    {
+			if (session instanceof HttpSession)
+			    try {
         			((HttpSession) session).invalidate();
         			out.println ("Successfully shut down session: " + session);
-        		} catch (Exception e) {
+			    } catch (Exception e) {
         			out.println ("Exception " + e + " while shutting down session " + session);
-        		}
-        }
+			    }
+		    }
 	}
 
 
