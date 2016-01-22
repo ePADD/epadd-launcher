@@ -21,10 +21,11 @@ cd ../../epadd/target
 mkdir tmp
 cd tmp
 mkdir WEB-INF;mkdir WEB-INF/classes;
-for F in $RESOURCES_DIR/*;
-do
-    cp -R $F WEB-INF/classes/
-done
+#do not update add the resources in epadd-settings
+#for F in $RESOURCES_DIR/*;
+#do
+#    cp -R $F WEB-INF/classes/
+#done
 for R in WEB-INF/classes/*;
 do
     echo "Updating with $R"
