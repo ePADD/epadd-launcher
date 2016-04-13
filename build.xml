@@ -16,7 +16,7 @@
 		    <matches string="${os.version}" pattern="^10.[234567]." />
 		</condition>
 		<condition property="launch4j.dir" value="launch4j-macos10.8">
-		    <matches string="${os.version}" pattern="^(10.8|10.9|10.10)." />
+		    <matches string="${os.version}" pattern="^(10.8|10.9|10.10|10.11)." />
 		</condition>
 		<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask" classpath="${launch4j.dir}/launch4j.jar:${launch4j.dir}/lib/xstream.jar" />
 		<launch4j configFile="${launch4j.dir}/epadd.xml" />
@@ -27,7 +27,7 @@
 		    <matches string="${os.version}" pattern="^10.[234567]." />
 		</condition>
 		<condition property="launch4j.dir" value="launch4j-macos10.8">
-		    <matches string="${os.version}" pattern="^10.[891]" />
+		    <matches string="${os.version}" pattern="^(10.8|10.9|10.10|10.11)." />
 		</condition>
 		<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask" classpath="${launch4j.dir}/launch4j.jar:${launch4j.dir}/lib/xstream.jar" />
 		<launch4j configFile="${launch4j.dir}/epadd-discovery.xml" />
