@@ -79,7 +79,7 @@ public class Hooks {
 	}
 
 	public void waitForElement(By by) {
-		WebDriverWait wait = new WebDriverWait(driver, 70);
+		WebDriverWait wait = new WebDriverWait(driver, 40);
 		try {
 			wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(by));
 		} catch (Exception e) {
@@ -88,7 +88,7 @@ public class Hooks {
 	}
 
 	public void waitForWebElement(By by) {
-		WebDriverWait wait = new WebDriverWait(driver, 20);
+		WebDriverWait wait = new WebDriverWait(driver, 40);
 		try {
 			wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(by));
 		} catch (Exception e) {

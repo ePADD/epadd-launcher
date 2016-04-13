@@ -16,6 +16,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.openqa.selenium.Alert;
 import org.openqa.selenium.By;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
@@ -33,7 +34,8 @@ import cucumber.api.java.en.Then;
 
 public class StepDefs {
 	public WebDriver driver;
-	public static String pID;
+	public static String totalNumberOfEmails;
+	public static String pID; 
 	public static final Logger logger = Logger.getLogger(Main.class.getName());
 
 	String userHome = System.getProperty("user.home");
@@ -69,17 +71,21 @@ public class StepDefs {
 		} else if (input.equals("primaryEmailAddress")) {
 			driver.findElement(By.name(field)).sendKeys(hooks.getValue("primaryEmailAddress"));
 		} else if (input.equals("emailFolderLocation")) {
-			driver.findElement(By.name(field))
-					.sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailFolderLocation"));
+			driver.findElement(By.name(field)).sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailFolderLocation"));
 		} else if (input.equals("emailExportLocation")) {
-			driver.findElement(By.name(field))
-					.sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailExportLocation"));
+			driver.findElement(By.name(field)).sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailExportLocation"));
 		} else if (input.equals("emailArchieveLocation")) {
-			driver.findElement(By.name(field))
-					.sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailArchieveLocation"));
+			driver.findElement(By.name(field)).sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailArchieveLocation"));
 		} else if (input.equals("emailExportSplitLocation")) {
-			driver.findElement(By.name(field))
-					.sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailExportSplitLocation"));
+			driver.findElement(By.name(field)).sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailExportSplitLocation"));
+		} else if (input.equals("epaddAchieverName")) {
+			driver.findElement(By.name(field)).sendKeys(hooks.getValue("epaddAchieverName"));
+		} else if (input.equals("epaddPrimaryEmailAddress")) {
+			driver.findElement(By.name(field)).sendKeys(hooks.getValue("epaddPrimaryEmailAddress"));
+		} else if (input.equals("epaddEmailAddress")) {
+			driver.findElement(By.name(field)).sendKeys(hooks.getValue("epaddEmailAddress"));
+		} else if (input.equals("epaddPassword")) {
+			driver.findElement(By.name(field)).sendKeys(hooks.getValue("epaddPassword"));
 		}
 	}
 
@@ -258,6 +264,58 @@ public class StepDefs {
 			}
 		}
 		driver.switchTo().window(parentWindow);
+	}	
+	
+	@And("I switch to Family page and click on id \"(.*?)\" and id \"(.*?)\" and verify email number \"(.*?)\"$")
+	public void verifyURL(String doNotTransferLocator, String applyToAllLocator, String emailNumberLocator) throws InterruptedException {
+		Hooks hooks = new Hooks();
+		String parentWindow = driver.getWindowHandle();
+		Set<String> handles = driver.getWindowHandles();
+		for (String windowHandle : handles) {
+			if (!windowHandle.equals(parentWindow)) {
+				driver.switchTo().window(windowHandle);
+				String currentURL = driver.getCurrentUrl();
+				hooks.verifyElement(currentURL, hooks.getValue("familyURL"));
+				if(driver.findElement(By.id(doNotTransferLocator)).getAttribute("class").contains("flag-enabled")){		
+				}
+				else{
+					driver.findElement(By.id(doNotTransferLocator)).click();
+					driver.findElement(By.id(applyToAllLocator)).click();
+				}
+				String num = driver.findElement(By.xpath(emailNumberLocator)).getText();
+				totalNumberOfEmails = num.substring(num.indexOf("/")).replace("/", "");
+				driver.close();
+			}
+		}
+		driver.switchTo().window(parentWindow);
+	}
+	 
+	@And("I switch to Job page and verify highlighted text having css \"(.*?)\" and email number \"(.*?)\"$")
+	public void verifyJobPage(String highlightedTextLocator, String emailNumberLocator) throws InterruptedException {
+		Hooks hooks = new Hooks();
+		String parentWindow = driver.getWindowHandle();
+		Set<String> handles = driver.getWindowHandles();
+		for (String windowHandle : handles) {
+			if (!windowHandle.equals(parentWindow)) {
+				driver.switchTo().window(windowHandle);
+				String currentURL = driver.getCurrentUrl();
+				hooks.verifyElement(currentURL, hooks.getValue("jobURL"));
+				String emailNumber = driver.findElement(By.xpath(emailNumberLocator)).getText();
+				hooks.waitForElement(By.cssSelector(highlightedTextLocator));
+				List<WebElement> highlightedText = driver.findElements(By.cssSelector(highlightedTextLocator));
+				hooks.assertElement(highlightedText.get(1).getText(), hooks.getValue("jobPageHighlightedText"));
+				hooks.assertElement(emailNumber.substring(emailNumber.indexOf("/")).replace("/", ""), hooks.getValue("jobPageEmailNumber"));
+				driver.close();
+			}
+		}
+		driver.switchTo().window(parentWindow);
+	} 
+	
+	@And("I verify the total number of emails not to be transfered having css \"(.*?)\"$")
+	public void verifyEmailsNotToTransfer(String emailNumberLocator) {
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.cssSelector(emailNumberLocator));
+		hooks.assertElement(totalNumberOfEmails, driver.findElement(By.cssSelector(emailNumberLocator)).getText().replaceAll("\\D", ""));
 	}
 	
 	@And("I enter florida in textfield having xpath \"(.*?)\"$")
@@ -272,6 +330,20 @@ public class StepDefs {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.xpath(textFieldLocator));
 		driver.findElement(By.xpath(textFieldLocator)).sendKeys(hooks.getValue("kidcareText"));
+	}
+	
+	@And("I enter Peter Chan in textfield having xpath \"(.*?)\"$")
+	public void enterText(String textFieldLocator) {
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.xpath(textFieldLocator));
+		driver.findElement(By.xpath(textFieldLocator)).sendKeys(hooks.getValue("newUserName"));
+	}
+	
+	@And("I enter budget in textfield having xpath \"(.*?)\"$")
+	public void enterBudgetText(String textFieldLocator) {
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.xpath(textFieldLocator));
+		driver.findElement(By.xpath(textFieldLocator)).sendKeys(hooks.getValue("budgetText"));
 	}
 	
 	@And("I enter paragraph in textfield having xpath \"(.*?)\"$")
@@ -293,6 +365,26 @@ public class StepDefs {
 			hooks.assertElement(number.substring(number.indexOf("/")).replace("/", ""), hooks.getValue("kidcareNumberValue"));
 			this.wait(5);
 		}
+		else if(text.equals(hooks.getValue("Peter Chan"))){
+			hooks.assertElement(number.substring(number.indexOf("/")).replace("/", ""), hooks.getValue("peterchanNumberValue"));
+			this.wait(5);
+		}
+		else if(text.equals(hooks.getValue("budget"))){
+			hooks.assertElement(number.substring(number.indexOf("/")).replace("/", ""), hooks.getValue("budgetNumberValue"));
+			this.wait(5);
+		}
+		else if(text.equals(hooks.getValue("budgetWithSubject"))){
+			hooks.assertElement(number.substring(number.indexOf("/")).replace("/", ""), hooks.getValue("budgetWithSubjectNumberValue"));
+			this.wait(5);
+		}
+	}
+	 
+	@And("I verify the highlighted \"(.*?)\" text having css \"(.*?)\"$")
+	public void verifyHighlightedText(String highlightedTextName, String highlightedTextLocator) {
+		Hooks hooks = new Hooks();
+		hooks.waitForWebElement(By.cssSelector(highlightedTextLocator));
+		String highlightedText = driver.findElement(By.cssSelector(highlightedTextLocator)).getText();
+		hooks.assertElement(highlightedTextName, highlightedText);
 	}
 	
 	@Then("I verify the number of highlighted texts having css \"(.*?)\"$")
@@ -340,5 +432,121 @@ public class StepDefs {
 	        return true;
 	    }
 	}
+	
+	@Then("I upload the image having id \"(.*?)\"$")
+	public void uploadImage(String imageLocator) throws InterruptedException {
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.id(imageLocator));
+		driver.findElement(By.id(imageLocator)).sendKeys(userHome+hooks.getValue("imageName"));
+	}
+	
+	@Then("I edit the address book having id \"(.*?)\"$")
+	public void editAddressBook(String addressBookLocator) throws InterruptedException {
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.id(addressBookLocator));
+		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.CONTROL, Keys.HOME);
+		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.END);
+		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.ENTER);
+		driver.findElement(By.id(addressBookLocator)).sendKeys(hooks.getValue("newUserName"));
+	}
 	 
+	@Then("I verify the updated profile text having css \"(.*?)\"$")
+	public void verifyUpdatedProfile(String profileLocator) throws InterruptedException {
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.cssSelector(profileLocator));
+		String profileName = driver.findElement(By.cssSelector(profileLocator)).getText();
+		hooks.verifyElement(profileName, hooks.getValue("newUserName"));
+	}
+	
+	@Then("I revert back the correspondent values in id \"(.*?)\"$")
+	public void revertCorrespondentsValues(String addressBookLocator) throws InterruptedException {
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.id(addressBookLocator));
+		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.CONTROL, Keys.HOME);
+		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.DOWN);
+		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.SHIFT, Keys.END);
+		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.BACK_SPACE);
+		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.BACK_SPACE);
+	}
+	
+	@Then("I verify the profile text having css \"(.*?)\" has reverted$")
+	public void verifyRevertedProfile(String profileLocator) throws InterruptedException {
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.cssSelector(profileLocator));
+		String profileName = driver.findElement(By.cssSelector(profileLocator)).getText();
+		hooks.verifyElement(profileName, hooks.getValue("achieverName"));
+	}
+	
+	@And("I verify the name \"(.*?)\" field on email source page$")
+	public void verifyEmailSourcePage(String textfieldLocator) throws InterruptedException {
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.name(textfieldLocator));
+	}
+	
+	@Then("^value \"([^\"]*)\" should be displayed having xpath \"([^\"]*)\"$")
+	public void verifyvalue(String strText, String actualText1) {
+		String expectedvalue = null;
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.xpath(actualText1));
+        if (strText.equals("document")) {
+        	expectedvalue = hooks.getValue("documentattachmentsvalue");
+        } else if (strText.equals("image")) {
+        	expectedvalue = hooks.getValue("imageattachmentsvalue");
+        } else if (strText.equals("other")) {
+        	expectedvalue = hooks.getValue("otherattachmentsvalue");
+        } 		
+		try {
+			String strOrig = driver.findElement(By.xpath(actualText1)).getText();
+			int intIndex = strOrig.indexOf(expectedvalue);
+		    if(intIndex == - 1){
+		    	System.out.println("expectedvalue not found");
+		    }else{
+		        System.out.println("Found expectedvalue at index " + intIndex);
+		    }
+		} catch (Exception e) {
+			// TODO: handle exception
+			logger.info("FAILED: Either the " + expectedvalue + " is not present or Page fails to load");
+		}
+	}
+	
+	@Then("^value \"([^\"]*)\" should be displayed having css \"([^\"]*)\"$")
+	public void verifyvaluebycss(String strText1, String actualText2) {
+		String expectedvalue1 = null;
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.cssSelector(actualText2));
+		
+		if (strText1.equals("document")) {
+	        	expectedvalue1 = hooks.getValue("documentattachmentsvalue1");
+	    } else if (strText1.equals("image")) {
+	        	expectedvalue1 = hooks.getValue("imageattachmentsvalue1");
+	    } else if (strText1.equals("other")) {
+	        	expectedvalue1 = hooks.getValue("otherattachmentsvalue1");
+	    } 
+		try {
+			String strOrig1 = driver.findElement(By.cssSelector(actualText2)).getText();
+		      int intIndex1 = strOrig1.indexOf(expectedvalue1);
+		      if(intIndex1 == - 1){
+		         System.out.println("expectedvalue not found");
+		      }else{
+		         System.out.println("Found expectedvalue at index " + intIndex1);
+		      }
+		} catch (Exception e) {
+			// TODO: handle exception
+			logger.info("FAILED: Either the " + expectedvalue1 + " is not present or Page fails to load");
+		}
+	}
+	
+	@And("I provide from date in textfield having id \"(.*?)\"$")
+	public void fromDateValue(String dateLocator) throws InterruptedException {
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.name(dateLocator));
+		driver.findElement(By.id(dateLocator)).sendKeys(hooks.getValue("fromDate"));
+	}
+	
+	@And("I provide to date in textfield having id \"(.*?)\"$")
+	public void toDateValue(String dateLocator) throws InterruptedException {
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.name(dateLocator));
+		driver.findElement(By.id(dateLocator)).sendKeys(hooks.getValue("toDate"));
+	}
 }
