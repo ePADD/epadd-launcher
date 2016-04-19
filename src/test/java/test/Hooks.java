@@ -73,6 +73,10 @@ public class Hooks {
 			logger.info("FAILED: " + ". ACTUAL: \"" + actualValue + "\", EXPECTED: \"" + expectedValue + "\"");
 		}
 	}
+	
+	protected void verifyElementPresence(String actualValue, String expectedValue) {
+		Assert.assertTrue(actualValue.contains(expectedValue));
+	}
 
 	protected void assertElement(String actualValue, String expectedValue) {
 		Assert.assertTrue(actualValue.equals(expectedValue));

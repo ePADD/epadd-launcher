@@ -468,7 +468,7 @@ public class StepDefs {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.cssSelector(profileLocator));
 		String profileName = driver.findElement(By.cssSelector(profileLocator)).getText();
-		hooks.verifyElement(profileName, hooks.getValue("newUserName"));
+		hooks.verifyElementPresence(profileName, hooks.getValue("newUserName"));
 	}
 	
 	@Then("I revert back the correspondent values in id \"(.*?)\"$")
