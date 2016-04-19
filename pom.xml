@@ -130,7 +130,7 @@
 						</goals>
 						<configuration>
 							<projectName>cucumber-jvm-example</projectName>
-							<outputDirectory>${project.build.directory}/site/cucumber-reports</outputDirectory>
+							<outputDirectory>${user.home}/ePADD-SeleniumOutput/Reports</outputDirectory>
 							<cucumberOutput>${project.build.directory}/cucumber.json</cucumberOutput>
 							<enableFlashCharts>false</enableFlashCharts>
 							<skippedFails>true</skippedFails>

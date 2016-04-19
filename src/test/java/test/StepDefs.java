@@ -35,7 +35,10 @@ import cucumber.api.java.en.Then;
 public class StepDefs {
 	public WebDriver driver;
 	public static String totalNumberOfEmails;
+	public static File newScreenshotFolder;
+	public static File newLogsFolder;
 	public static String pID; 
+	
 	public static final Logger logger = Logger.getLogger(Main.class.getName());
 
 	String userHome = System.getProperty("user.home");
@@ -44,7 +47,7 @@ public class StepDefs {
 	public StepDefs() {
 		driver = Hooks.driver;
 	}
-
+	
 	@Given("^I navigate to \"(.*?)\"$")
 	public void openURL(String url) throws Throwable {
 		Hooks hooks = new Hooks();
@@ -53,6 +56,7 @@ public class StepDefs {
 		} else {
 			Hooks.driver.get(hooks.getValue("epaddIndexURL"));
 		}
+		this.createFolder();
 	}
 
 	@Then("^I wait for (\\d+) sec$")
@@ -65,7 +69,6 @@ public class StepDefs {
 		Hooks hooks = new Hooks();
 		DirLocation search = new DirLocation();
 		hooks.waitForElement(By.name(field));
-
 		if (input.equals("achieverName")) {
 			driver.findElement(By.name(field)).sendKeys(hooks.getValue("achieverName"));
 		} else if (input.equals("primaryEmailAddress")) {
@@ -205,28 +208,38 @@ public class StepDefs {
 			wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//div/a[@href='correspondents']")));
 		} catch (org.openqa.selenium.TimeoutException e) {
 			logger.info(hooks.getValue("browserTopPage") + " did not opened in " + time + " Seconds.Exception occured is: " + e);
-			System.out.println();
 		}
 	}
 	
-	@Then("^create screenshot folder$")
-	public void createScreenshotFolder() throws Throwable {
+	@Then("^create folder$")
+	public void createFolder() throws Throwable {
 		Hooks hooks = new Hooks();
-		File file = new File(userHome + hooks.getValue("StrScreenShotFolderPath"));
-		if (!file.exists()) {
-			file.mkdir();
-		} else {
+		File screenshotFolder = new File(userHome + hooks.getValue("screenshotFolderPath"));
+		File reportFolder = new File(userHome + hooks.getValue("reportsFolderPath"));
+		File logsFolder = new File(userHome + hooks.getValue("logsFolderPath"));
+		String timestamp = new SimpleDateFormat("yyyy.MM.dd").format(new Date());
+		newScreenshotFolder = new File(userHome+hooks.getValue("screenshotCapturedFolderPath")+timestamp);
+		if (!screenshotFolder.exists()) {
+			screenshotFolder.mkdirs();
+		} 
+		if (!reportFolder.exists()) {
+			reportFolder.mkdirs();
+		} 
+		if (!logsFolder.exists()) {
+			logsFolder.mkdirs();
+		} 
+		if(!newScreenshotFolder.exists()){
+			newScreenshotFolder.mkdirs();
 		}
 	}
 	
 	@Then("^take full page screenshot of \"(.*?)\"$")
 	public void takeScreenshot(String page) throws Throwable {
 		Hooks hooks = new Hooks();
-		this.createScreenshotFolder();
 		String timestamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
 		String stamp = timestamp + ".png";
 		File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-		FileUtils.copyFile(scrFile, new File(userHome+hooks.getValue("StrScreenShotPath") + hooks.getValue("browser") + "-" + page + "-" +stamp));
+		FileUtils.copyFile(scrFile, new File(newScreenshotFolder+hooks.getValue("screenShotPath") + hooks.getValue("browser") + "-" + page + "-" +stamp));	
 	}
 
 	@And("I verify that \"(.*?)\" is displayed$")
