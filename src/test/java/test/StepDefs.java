@@ -42,7 +42,6 @@ public class StepDefs {
 	public static final Logger logger = Logger.getLogger(Main.class.getName());
 
 	String userHome = System.getProperty("user.home");
-	String driveLocation = userHome.substring(0, userHome.indexOf("\\"));
 
 	public StepDefs() {
 		driver = Hooks.driver;
@@ -67,20 +66,19 @@ public class StepDefs {
 	@And("I enter \"(.*?)\" into input field having name \"(.*?)\"$")
 	public void enterUserName(String input, String field) {
 		Hooks hooks = new Hooks();
-		DirLocation search = new DirLocation();
 		hooks.waitForElement(By.name(field));
 		if (input.equals("achieverName")) {
 			driver.findElement(By.name(field)).sendKeys(hooks.getValue("achieverName"));
 		} else if (input.equals("primaryEmailAddress")) {
 			driver.findElement(By.name(field)).sendKeys(hooks.getValue("primaryEmailAddress"));
 		} else if (input.equals("emailFolderLocation")) {
-			driver.findElement(By.name(field)).sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailFolderLocation"));
+			driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailFolderLocation"));
 		} else if (input.equals("emailExportLocation")) {
-			driver.findElement(By.name(field)).sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailExportLocation"));
+			driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailExportLocation"));
 		} else if (input.equals("emailArchieveLocation")) {
-			driver.findElement(By.name(field)).sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailArchieveLocation"));
+			driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailArchieveLocation"));
 		} else if (input.equals("emailExportSplitLocation")) {
-			driver.findElement(By.name(field)).sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailExportSplitLocation"));
+			driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailExportSplitLocation"));
 		} else if (input.equals("epaddAchieverName")) {
 			driver.findElement(By.name(field)).sendKeys(hooks.getValue("epaddAchieverName"));
 		} else if (input.equals("epaddPrimaryEmailAddress")) {
@@ -165,7 +163,8 @@ public class StepDefs {
 
 	@Then("open ePADD$")
 	public void openApplication() throws IOException, InterruptedException {
-		ProcessBuilder pb = new ProcessBuilder(driveLocation + "\\epadd.exe");
+		Hooks hooks = new Hooks();
+		ProcessBuilder pb = new ProcessBuilder(hooks.getValue("epaddLocation"));
 		Process process = pb.start();
 		process.waitFor();
 		Thread.sleep(35000);
@@ -180,9 +179,9 @@ public class StepDefs {
 	@Then("copy files$")
 	public void copyFiles() throws InterruptedException {
 		Hooks hooks = new Hooks();
-		File deliverySource = new File(driveLocation + hooks.getValue("deliverySource"));
+		File deliverySource = new File(hooks.getValue("deliverySource"));
 		File deliveryDest = new File(userHome + hooks.getValue("deliveryDest"));
-		File discoverySource = new File(driveLocation + hooks.getValue("discoverySource"));
+		File discoverySource = new File(hooks.getValue("discoverySource"));
 		File discoveryDest = new File(userHome + hooks.getValue("discoveryDest"));
 		try {
 			FileUtils.copyDirectory(deliverySource, deliveryDest);
