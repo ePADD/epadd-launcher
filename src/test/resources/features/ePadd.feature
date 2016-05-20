@@ -8,8 +8,8 @@ Feature: ePadd
 		And I enter <emailFolderLocation> into input field having name "mboxDir1"            
 		And I click on element having id "gobutton"
 		Then I click on "Select All Folder" button having css "button.btn-default.select_all_button"
-		And I click on element having id "go-button"
-		Then I wait for the page <browserTopPage> to be displayed within "240" seconds
+		And I click on element having id "gobutton"
+		Then I wait for the page <browserTopPage> to be displayed within "360" seconds
 		
 		Then I click on element having xpath "//img[@src='images/header-menuicon.svg']"
 		Then I click on element having link "Set Images"

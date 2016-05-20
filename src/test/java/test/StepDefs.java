@@ -1,6 +1,5 @@
 package test;
 
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -31,24 +30,46 @@ import cucumber.api.java.en.And;
 import cucumber.api.java.en.Given;
 import cucumber.api.java.en.Then;
 
-
 public class StepDefs {
 	public WebDriver driver;
 	public static String totalNumberOfEmails;
 	public static File newScreenshotFolder;
 	public static File newLogsFolder;
-	public static String pID; 
-	
+	public static String pID;
+
 	public static final Logger logger = Logger.getLogger(Main.class.getName());
 
 	String userHome = System.getProperty("user.home");
+	// String driveLocation = userHome.substring(0, userHome.indexOf("\\"));
+	String driveLocation = userHome;
+	String opsystem = System.getProperty("os.name");
+
+	public static void main(String args[]) {
+		String userHome = System.getProperty("user.home");
+		String opsystem = System.getProperty("os.name");
+
+		System.out.println("user home is: " + userHome);
+		System.out.println("operating system is: " + opsystem);
+
+		if (opsystem.contains("Windows")) {
+			String driveLocation = userHome.substring(0, userHome.indexOf("\\"));
+			System.out.println("Root directory in windows is: " + driveLocation);
+		} else if (opsystem.contains("Linux")) {
+			String driveLocation = userHome;
+			System.out.println("Root directory in Linux is: " + driveLocation);
+		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+			String driveLocation = userHome;
+			System.out.println("Root directory in Mac is: " + driveLocation);
+		}
+	}
 
 	public StepDefs() {
 		driver = Hooks.driver;
 	}
-	
+
 	@Given("^I navigate to \"(.*?)\"$")
 	public void openURL(String url) throws Throwable {
+
 		Hooks hooks = new Hooks();
 		if (url.equals("emailSourceURL")) {
 			Hooks.driver.get(hooks.getValue("emailSourceURL"));
@@ -64,21 +85,66 @@ public class StepDefs {
 	}
 
 	@And("I enter \"(.*?)\" into input field having name \"(.*?)\"$")
-	public void enterUserName(String input, String field) {
+	public void enterUserName(String input, String field) throws InterruptedException {
+		String userHome = System.getProperty("user.home");
+		System.out.println("root directory is: " + userHome);
+
 		Hooks hooks = new Hooks();
+		DirLocation search = new DirLocation();
 		hooks.waitForElement(By.name(field));
 		if (input.equals("achieverName")) {
 			driver.findElement(By.name(field)).sendKeys(hooks.getValue("achieverName"));
 		} else if (input.equals("primaryEmailAddress")) {
 			driver.findElement(By.name(field)).sendKeys(hooks.getValue("primaryEmailAddress"));
 		} else if (input.equals("emailFolderLocation")) {
-			driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailFolderLocation"));
+
+			if (opsystem.contains("Windows")) {
+				driver.findElement(By.name(field))
+						.sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailFolderLocation"));
+			} else if (opsystem.contains("Linux")) {
+				String str5 = changePath("emailFolderLocation");
+				driver.findElement(By.name(field)).sendKeys(str5);
+			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+				String str5 = changePath("emailFolderLocation");
+				driver.findElement(By.name(field)).sendKeys(str5);
+			}
+
 		} else if (input.equals("emailExportLocation")) {
-			driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailExportLocation"));
+			if (opsystem.contains("Windows")) {
+				driver.findElement(By.name(field))
+						.sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailExportLocation"));
+			} else if (opsystem.contains("Linux")) {
+				String str5 = changePath("emailExportLocation");
+				driver.findElement(By.name(field)).sendKeys(str5);
+			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+				String str5 = changePath("emailExportLocation");
+				driver.findElement(By.name(field)).sendKeys(str5);
+			}
+
 		} else if (input.equals("emailArchieveLocation")) {
-			driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailArchieveLocation"));
+			if (opsystem.contains("Windows")) {
+				driver.findElement(By.name(field))
+						.sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailArchieveLocation"));
+			} else if (opsystem.contains("Linux")) {
+				String str5 = changePath("emailArchieveLocation");
+				driver.findElement(By.name(field)).sendKeys(str5);
+			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+				String str5 = changePath("emailArchieveLocation");
+				driver.findElement(By.name(field)).sendKeys(str5);
+			}
+
 		} else if (input.equals("emailExportSplitLocation")) {
-			driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailExportSplitLocation"));
+			if (opsystem.contains("Windows")) {
+				driver.findElement(By.name(field))
+						.sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailExportSplitLocation"));
+			} else if (opsystem.contains("Linux")) {
+				String str5 = changePath("emailExportSplitLocation");
+				driver.findElement(By.name(field)).sendKeys(str5);
+			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+				String str5 = changePath("emailExportSplitLocation");
+				driver.findElement(By.name(field)).sendKeys(str5);
+			}
+
 		} else if (input.equals("epaddAchieverName")) {
 			driver.findElement(By.name(field)).sendKeys(hooks.getValue("epaddAchieverName"));
 		} else if (input.equals("epaddPrimaryEmailAddress")) {
@@ -88,6 +154,16 @@ public class StepDefs {
 		} else if (input.equals("epaddPassword")) {
 			driver.findElement(By.name(field)).sendKeys(hooks.getValue("epaddPassword"));
 		}
+	}
+
+	public String changePath(String StrParam) {
+		Hooks hooks = new Hooks();
+		String str1 = hooks.getValue("ePADDHome");
+		String str2 = hooks.getValue(StrParam);
+		String str3 = str1 + str2;
+		String str4 = str3.replace('\\', '/');
+		System.out.println("changed path is:" + str4);
+		return str4;
 	}
 
 	@And("I click on element having id \"(.*?)\"$")
@@ -110,7 +186,7 @@ public class StepDefs {
 		hooks.waitForElement(By.xpath(xpathLocator));
 		driver.findElement(By.xpath(xpathLocator)).click();
 	}
-	
+
 	@Then("I click on element having css \"(.*?)\"$")
 	public void clickOnElementHavingCSS(String cssLocator) {
 		Hooks hooks = new Hooks();
@@ -163,8 +239,7 @@ public class StepDefs {
 
 	@Then("open ePADD$")
 	public void openApplication() throws IOException, InterruptedException {
-		Hooks hooks = new Hooks();
-		ProcessBuilder pb = new ProcessBuilder(hooks.getValue("epaddLocation"));
+		ProcessBuilder pb = new ProcessBuilder(driveLocation + "\\epadd.exe");
 		Process process = pb.start();
 		process.waitFor();
 		Thread.sleep(35000);
@@ -179,16 +254,67 @@ public class StepDefs {
 	@Then("copy files$")
 	public void copyFiles() throws InterruptedException {
 		Hooks hooks = new Hooks();
-		File deliverySource = new File(hooks.getValue("deliverySource"));
-		File deliveryDest = new File(userHome + hooks.getValue("deliveryDest"));
-		File discoverySource = new File(hooks.getValue("discoverySource"));
-		File discoveryDest = new File(userHome + hooks.getValue("discoveryDest"));
+		File deliverySource = null;
+		File discoverySource = null;
+		File deliveryDest = null;
+		File discoveryDest = null;
+
+		if (opsystem.contains("Windows")) {
+			deliverySource = new File(driveLocation + hooks.getValue("deliverySource"));
+		} else if (opsystem.contains("Linux")) {
+			String str5 = changePath1("deliverySource");
+			deliverySource = new File(driveLocation + str5);
+		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+			String str5 = changePath1("deliverySource");
+			deliverySource = new File(driveLocation + str5);
+		}
+
+		if (opsystem.contains("Windows")) {
+			deliveryDest = new File(userHome + hooks.getValue("deliveryDest"));
+		} else if (opsystem.contains("Linux")) {
+			String str5 = changePath1("deliveryDest");
+			deliveryDest = new File(userHome + str5);
+		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+			String str5 = changePath1("deliveryDest");
+			deliveryDest = new File(userHome + str5);
+		}
+
+		if (opsystem.contains("Windows")) {
+			discoverySource = new File(driveLocation + hooks.getValue("discoverySource"));
+		} else if (opsystem.contains("Linux")) {
+			String str5 = changePath1("discoverySource");
+			discoverySource = new File(driveLocation + str5);
+		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+			String str5 = changePath1("discoverySource");
+			discoverySource = new File(driveLocation + str5);
+		}
+
+		if (opsystem.contains("Windows")) {
+			discoveryDest = new File(userHome + hooks.getValue("discoveryDest"));
+		} else if (opsystem.contains("Linux")) {
+			String str5 = changePath1("discoveryDest");
+			discoveryDest = new File(userHome + str5);
+		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+			String str5 = changePath1("discoveryDest");
+			discoveryDest = new File(userHome + str5);
+		}
+
 		try {
 			FileUtils.copyDirectory(deliverySource, deliveryDest);
 			FileUtils.copyDirectory(discoverySource, discoveryDest);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+	public String changePath1(String StrParam) {
+
+		Hooks hooks = new Hooks();
+		String str2 = hooks.getValue(StrParam);
+		String str4 = str2.replace('\\', '/');
+		System.out.println("changed path is:" + str4);
+		return str4;
+
 	}
 
 	@Then("I select \"(.*?)\" option by text from dropdown having id \"(.*?)\"$")
@@ -198,7 +324,7 @@ public class StepDefs {
 		Select select = new Select(driver.findElement(By.id(id)));
 		select.selectByVisibleText(option);
 	}
-	
+
 	@Then("^I wait for the page \"(.*?)\" to be displayed within \"(.*?)\" seconds$")
 	public void waitForPageToLoad(String url, int time) throws Throwable {
 		WebDriverWait wait = new WebDriverWait(driver, time);
@@ -206,62 +332,113 @@ public class StepDefs {
 		try {
 			wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//div/a[@href='correspondents']")));
 		} catch (org.openqa.selenium.TimeoutException e) {
-			logger.info(hooks.getValue("browserTopPage") + " did not opened in " + time + " Seconds.Exception occured is: " + e);
+			logger.info(hooks.getValue("browserTopPage") + " did not opened in " + time
+					+ " Seconds.Exception occured is: " + e);
 		}
 	}
-	
+
 	@Then("^create folder$")
 	public void createFolder() throws Throwable {
 		Hooks hooks = new Hooks();
-		File screenshotFolder = new File(userHome + hooks.getValue("screenshotFolderPath"));
-		File reportFolder = new File(userHome + hooks.getValue("reportsFolderPath"));
-		File logsFolder = new File(userHome + hooks.getValue("logsFolderPath"));
+		File screenshotFolder = null;
+		File reportFolder = null;
+		File logsFolder = null;
+
+		if (opsystem.contains("Windows")) {
+			screenshotFolder = new File(userHome + hooks.getValue("screenshotFolderPath"));
+		} else if (opsystem.contains("Linux")) {
+			String str5 = changePath1("screenshotFolderPath");
+			screenshotFolder = new File(userHome + str5);
+		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+			String str5 = changePath1("screenshotFolderPath");
+			screenshotFolder = new File(userHome + str5);
+		}
+
+		if (opsystem.contains("Windows")) {
+			reportFolder = new File(userHome + hooks.getValue("reportsFolderPath"));
+		} else if (opsystem.contains("Linux")) {
+			String str5 = changePath1("reportsFolderPath");
+			reportFolder = new File(userHome + str5);
+		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+			String str5 = changePath1("reportsFolderPath");
+			reportFolder = new File(userHome + str5);
+		}
+
+		if (opsystem.contains("Windows")) {
+			logsFolder = new File(userHome + hooks.getValue("logsFolderPath"));
+		} else if (opsystem.contains("Linux")) {
+			String str5 = changePath1("logsFolderPath");
+			logsFolder = new File(userHome + str5);
+		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+			String str5 = changePath1("logsFolderPath");
+			logsFolder = new File(userHome + str5);
+		}
+
 		String timestamp = new SimpleDateFormat("yyyy.MM.dd").format(new Date());
-		newScreenshotFolder = new File(userHome+hooks.getValue("screenshotCapturedFolderPath")+timestamp);
+
+		if (opsystem.contains("Windows")) {
+			newScreenshotFolder = new File(userHome + hooks.getValue("screenshotCapturedFolderPath") + timestamp);
+		} else if (opsystem.contains("Linux")) {
+			String str5 = changePath1("screenshotCapturedFolderPath");
+			newScreenshotFolder = new File(userHome + str5 + timestamp);
+		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+			String str5 = changePath1("screenshotCapturedFolderPath");
+			newScreenshotFolder = new File(userHome + str5 + timestamp);
+		}
+
 		if (!screenshotFolder.exists()) {
 			screenshotFolder.mkdirs();
-		} 
+		}
 		if (!reportFolder.exists()) {
 			reportFolder.mkdirs();
-		} 
+		}
 		if (!logsFolder.exists()) {
 			logsFolder.mkdirs();
-		} 
-		if(!newScreenshotFolder.exists()){
+		}
+		if (!newScreenshotFolder.exists()) {
 			newScreenshotFolder.mkdirs();
 		}
 	}
-	
+
 	@Then("^take full page screenshot of \"(.*?)\"$")
 	public void takeScreenshot(String page) throws Throwable {
 		Hooks hooks = new Hooks();
 		String timestamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
 		String stamp = timestamp + ".png";
 		File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-		FileUtils.copyFile(scrFile, new File(newScreenshotFolder+hooks.getValue("screenShotPath") + hooks.getValue("browser") + "-" + page + "-" +stamp));	
+
+		if (opsystem.contains("Windows")) {
+			FileUtils.copyFile(scrFile, new File(newScreenshotFolder + hooks.getValue("screenShotPath")
+					+ hooks.getValue("browser") + "-" + page + "-" + stamp));
+		} else if (opsystem.contains("Linux")) {
+			String str5 = changePath1("screenShotPath");
+			FileUtils.copyFile(scrFile,
+					new File(newScreenshotFolder + str5 + hooks.getValue("browser") + "-" + page + "-" + stamp));
+		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+			String str5 = changePath1("screenShotPath");
+			FileUtils.copyFile(scrFile,
+					new File(newScreenshotFolder + str5 + hooks.getValue("browser") + "-" + page + "-" + stamp));
+		}
 	}
 
 	@And("I verify that \"(.*?)\" is displayed$")
 	public void verifyLexicanURL(String url) {
 		Hooks hooks = new Hooks();
-		if(url.equals("LexicanURL")){
+		if (url.equals("LexicanURL")) {
 			String currentURL = driver.getCurrentUrl();
 			hooks.verifyElement(currentURL, hooks.getValue("lexicanURL"));
-		}
-		else if(url.equals("LexicanEditURL")){
+		} else if (url.equals("LexicanEditURL")) {
 			String currentURL = driver.getCurrentUrl();
 			hooks.verifyElement(currentURL, hooks.getValue("LexicanEditURL"));
-		}
-		else if(url.equals("queryGeneratorPage")){
+		} else if (url.equals("queryGeneratorPage")) {
 			String currentURL = driver.getCurrentUrl();
 			hooks.verifyElement(currentURL, hooks.getValue("queryGenerator"));
-		}
-		else if(url.equals("editCorrespondentsPage")){
+		} else if (url.equals("editCorrespondentsPage")) {
 			String currentURL = driver.getCurrentUrl();
 			hooks.verifyElement(currentURL, hooks.getValue("editCorrespondentsPage"));
 		}
 	}
-	
+
 	@And("I switch to the new window and verify the url$")
 	public void verifyURL() throws InterruptedException {
 		Hooks hooks = new Hooks();
@@ -276,10 +453,11 @@ public class StepDefs {
 			}
 		}
 		driver.switchTo().window(parentWindow);
-	}	
-	
+	}
+
 	@And("I switch to Family page and click on id \"(.*?)\" and id \"(.*?)\" and verify email number \"(.*?)\"$")
-	public void verifyURL(String doNotTransferLocator, String applyToAllLocator, String emailNumberLocator) throws InterruptedException {
+	public void verifyURL(String doNotTransferLocator, String applyToAllLocator, String emailNumberLocator)
+			throws InterruptedException {
 		Hooks hooks = new Hooks();
 		String parentWindow = driver.getWindowHandle();
 		Set<String> handles = driver.getWindowHandles();
@@ -288,9 +466,8 @@ public class StepDefs {
 				driver.switchTo().window(windowHandle);
 				String currentURL = driver.getCurrentUrl();
 				hooks.verifyElement(currentURL, hooks.getValue("familyURL"));
-				if(driver.findElement(By.id(doNotTransferLocator)).getAttribute("class").contains("flag-enabled")){		
-				}
-				else{
+				if (driver.findElement(By.id(doNotTransferLocator)).getAttribute("class").contains("flag-enabled")) {
+				} else {
 					driver.findElement(By.id(doNotTransferLocator)).click();
 					driver.findElement(By.id(applyToAllLocator)).click();
 				}
@@ -301,7 +478,7 @@ public class StepDefs {
 		}
 		driver.switchTo().window(parentWindow);
 	}
-	 
+
 	@And("I switch to Job page and verify highlighted text having css \"(.*?)\" and email number \"(.*?)\"$")
 	public void verifyJobPage(String highlightedTextLocator, String emailNumberLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
@@ -316,81 +493,84 @@ public class StepDefs {
 				hooks.waitForElement(By.cssSelector(highlightedTextLocator));
 				List<WebElement> highlightedText = driver.findElements(By.cssSelector(highlightedTextLocator));
 				hooks.assertElement(highlightedText.get(1).getText(), hooks.getValue("jobPageHighlightedText"));
-				hooks.assertElement(emailNumber.substring(emailNumber.indexOf("/")).replace("/", ""), hooks.getValue("jobPageEmailNumber"));
+				hooks.assertElement(emailNumber.substring(emailNumber.indexOf("/")).replace("/", ""),
+						hooks.getValue("jobPageEmailNumber"));
 				driver.close();
 			}
 		}
 		driver.switchTo().window(parentWindow);
-	} 
-	
+	}
+
 	@And("I verify the total number of emails not to be transfered having css \"(.*?)\"$")
 	public void verifyEmailsNotToTransfer(String emailNumberLocator) {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.cssSelector(emailNumberLocator));
-		hooks.assertElement(totalNumberOfEmails, driver.findElement(By.cssSelector(emailNumberLocator)).getText().replaceAll("\\D", ""));
+		hooks.assertElement(totalNumberOfEmails,
+				driver.findElement(By.cssSelector(emailNumberLocator)).getText().replaceAll("\\D", ""));
 	}
-	
+
 	@And("I enter florida in textfield having xpath \"(.*?)\"$")
 	public void enterFlorida(String textFieldLocator) {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.xpath(textFieldLocator));
 		driver.findElement(By.xpath(textFieldLocator)).sendKeys(hooks.getValue("floridaText"));
 	}
-	
+
 	@And("I enter kidcare in textfield having xpath \"(.*?)\"$")
 	public void enterKidcare(String textFieldLocator) {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.xpath(textFieldLocator));
 		driver.findElement(By.xpath(textFieldLocator)).sendKeys(hooks.getValue("kidcareText"));
 	}
-	
+
 	@And("I enter Peter Chan in textfield having xpath \"(.*?)\"$")
 	public void enterText(String textFieldLocator) {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.xpath(textFieldLocator));
 		driver.findElement(By.xpath(textFieldLocator)).sendKeys(hooks.getValue("newUserName"));
 	}
-	
+
 	@And("I enter budget in textfield having xpath \"(.*?)\"$")
 	public void enterBudgetText(String textFieldLocator) {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.xpath(textFieldLocator));
 		driver.findElement(By.xpath(textFieldLocator)).sendKeys(hooks.getValue("budgetText"));
 	}
-	
+
 	@And("I enter paragraph in textfield having xpath \"(.*?)\"$")
 	public void enterParagraph(String textFieldLocator) {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.xpath(textFieldLocator));
 		driver.findElement(By.xpath(textFieldLocator)).sendKeys(hooks.getValue("paragraph"));
 	}
-	
+
 	@Then("I verify the number having xpath \"(.*?)\" searched with \"(.*?)\"$")
 	public void verifyNumber(String num, String text) throws InterruptedException {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.xpath(num));
 		String number = driver.findElement(By.xpath(num)).getText();
-		if(text.equals(hooks.getValue("floridaText"))){
-			hooks.assertElement(number.substring(number.indexOf("/")).replace("/", ""), hooks.getValue("floridaNumberValue"));
-		}
-		else if(text.equals(hooks.getValue("kidcareText"))){
-			hooks.assertElement(number.substring(number.indexOf("/")).replace("/", ""), hooks.getValue("kidcareNumberValue"));
+		if (text.equals(hooks.getValue("floridaText"))) {
+			hooks.verifyFloridaNumber(number.substring(number.indexOf("/")).replace("/", ""),
+					hooks.getValue("floridaNumberValue"));
+		} else if (text.equals(hooks.getValue("kidcareText"))) {
+			hooks.assertElement(number.substring(number.indexOf("/")).replace("/", ""),
+					hooks.getValue("kidcareNumberValue"));
 			this.wait(5);
-		}
-		else if(text.equals(hooks.getValue("Peter Chan"))){
-			hooks.assertElement(number.substring(number.indexOf("/")).replace("/", ""), hooks.getValue("peterchanNumberValue"));
+		} else if (text.equals(hooks.getValue("Peter Chan"))) {
+			hooks.assertElement(number.substring(number.indexOf("/")).replace("/", ""),
+					hooks.getValue("peterchanNumberValue"));
 			this.wait(5);
-		}
-		else if(text.equals(hooks.getValue("budget"))){
-			hooks.assertElement(number.substring(number.indexOf("/")).replace("/", ""), hooks.getValue("budgetNumberValue"));
+		} else if (text.equals(hooks.getValue("budget"))) {
+			hooks.assertElement(number.substring(number.indexOf("/")).replace("/", ""),
+					hooks.getValue("budgetNumberValue"));
 			this.wait(5);
-		}
-		else if(text.equals(hooks.getValue("budgetWithSubject"))){
-			hooks.assertElement(number.substring(number.indexOf("/")).replace("/", ""), hooks.getValue("budgetWithSubjectNumberValue"));
+		} else if (text.equals(hooks.getValue("budgetWithSubject"))) {
+			hooks.assertElement(number.substring(number.indexOf("/")).replace("/", ""),
+					hooks.getValue("budgetWithSubjectNumberValue"));
 			this.wait(5);
 		}
 	}
-	 
+
 	@And("I verify the highlighted \"(.*?)\" text having css \"(.*?)\"$")
 	public void verifyHighlightedText(String highlightedTextName, String highlightedTextLocator) {
 		Hooks hooks = new Hooks();
@@ -398,7 +578,7 @@ public class StepDefs {
 		String highlightedText = driver.findElement(By.cssSelector(highlightedTextLocator)).getText();
 		hooks.assertElement(highlightedTextName, highlightedText);
 	}
-	
+
 	@Then("I verify the number of highlighted texts having css \"(.*?)\"$")
 	public void verifyHighlightedText(String highlightedTextLocator) {
 		Hooks hooks = new Hooks();
@@ -407,7 +587,7 @@ public class StepDefs {
 		int highlightedTextSize = highlightedText.size();
 		hooks.assertElement(Integer.toString(highlightedTextSize), hooks.getValue("highlightedTextSize"));
 	}
-	
+
 	@Then("I verify the number of underlined texts having css \"(.*?)\"$")
 	public void verifyUnderlinedText(String underlinedTextLocator) {
 		Hooks hooks = new Hooks();
@@ -416,42 +596,72 @@ public class StepDefs {
 		int underlinedTextSize = underlinedText.size();
 		hooks.assertElement(Integer.toString(underlinedTextSize), hooks.getValue("underlinedTextSize"));
 	}
-	
+
 	@Then("I handle the alert$")
 	public void handleAlert() throws InterruptedException {
 		Thread.sleep(5000);
 		Alert alert = driver.switchTo().alert();
 		alert.accept();
 	}
-	
+
 	@Then("I verify the session folder under \"(.*?)\" folder$")
 	public void checkFolderExistence(String folderName) throws InterruptedException, IOException {
 		this.wait(5);
 		Hooks hooks = new Hooks();
-		File file = new File(userHome+hooks.getValue("sessionFolder"));
-		if(file.exists()){
-			FileUtils.deleteDirectory(new File(userHome+hooks.getValue("sessionFolder")));
+		File file = null;
+
+		if (opsystem.contains("Windows")) {
+			file = new File(userHome + hooks.getValue("sessionFolder"));
+		} else if (opsystem.contains("Linux")) {
+			String str5 = changePath1("sessionFolder");
+			file = new File(userHome + str5);
+		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+			String str5 = changePath1("sessionFolder");
+			file = new File(userHome + str5);
+		}
+
+		if (file.exists()) {
+
+			if (opsystem.contains("Windows")) {
+				FileUtils.deleteDirectory(new File(userHome + hooks.getValue("sessionFolder")));
+			} else if (opsystem.contains("Linux")) {
+				String str5 = changePath1("sessionFolder");
+				FileUtils.deleteDirectory(new File(userHome + str5));
+			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+				String str5 = changePath1("sessionFolder");
+				FileUtils.deleteDirectory(new File(userHome + str5));
+			}
 		}
 		this.wait(5);
 	}
-	
+
 	@And("I verify the \"(.*?)\" link existence$")
 	public boolean browseLinkExistence(String browseLink) throws Exception {
 		try {
-	        driver.findElement(By.linkText(browseLink));
-	        return false;
-	    } catch (Exception e) {
-	        return true;
-	    }
+			driver.findElement(By.linkText(browseLink));
+			return false;
+		} catch (Exception e) {
+			return true;
+		}
 	}
-	
+
 	@Then("I upload the image having id \"(.*?)\"$")
 	public void uploadImage(String imageLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.id(imageLocator));
-		driver.findElement(By.id(imageLocator)).sendKeys(userHome+hooks.getValue("imageName"));
+
+		if (opsystem.contains("Windows")) {
+			driver.findElement(By.id(imageLocator)).sendKeys(userHome + hooks.getValue("imageName"));
+		} else if (opsystem.contains("Linux")) {
+			String str5 = changePath1("imageName");
+			driver.findElement(By.id(imageLocator)).sendKeys(userHome + str5);
+		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
+			String str5 = changePath1("imageName");
+			driver.findElement(By.id(imageLocator)).sendKeys(userHome + str5);
+		}
+
 	}
-	
+
 	@Then("I edit the address book having id \"(.*?)\"$")
 	public void editAddressBook(String addressBookLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
@@ -461,7 +671,7 @@ public class StepDefs {
 		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.ENTER);
 		driver.findElement(By.id(addressBookLocator)).sendKeys(hooks.getValue("newUserName"));
 	}
-	 
+
 	@Then("I verify the updated profile text having css \"(.*?)\"$")
 	public void verifyUpdatedProfile(String profileLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
@@ -469,7 +679,7 @@ public class StepDefs {
 		String profileName = driver.findElement(By.cssSelector(profileLocator)).getText();
 		hooks.verifyElementPresence(profileName, hooks.getValue("newUserName"));
 	}
-	
+
 	@Then("I revert back the correspondent values in id \"(.*?)\"$")
 	public void revertCorrespondentsValues(String addressBookLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
@@ -480,7 +690,7 @@ public class StepDefs {
 		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.BACK_SPACE);
 		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.BACK_SPACE);
 	}
-	
+
 	@Then("I verify the profile text having css \"(.*?)\" has reverted$")
 	public void verifyRevertedProfile(String profileLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
@@ -488,73 +698,73 @@ public class StepDefs {
 		String profileName = driver.findElement(By.cssSelector(profileLocator)).getText();
 		hooks.verifyElement(profileName, hooks.getValue("achieverName"));
 	}
-	
+
 	@And("I verify the name \"(.*?)\" field on email source page$")
 	public void verifyEmailSourcePage(String textfieldLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.name(textfieldLocator));
 	}
-	
+
 	@Then("^value \"([^\"]*)\" should be displayed having xpath \"([^\"]*)\"$")
 	public void verifyvalue(String strText, String actualText1) {
 		String expectedvalue = null;
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.xpath(actualText1));
-        if (strText.equals("document")) {
-        	expectedvalue = hooks.getValue("documentattachmentsvalue");
-        } else if (strText.equals("image")) {
-        	expectedvalue = hooks.getValue("imageattachmentsvalue");
-        } else if (strText.equals("other")) {
-        	expectedvalue = hooks.getValue("otherattachmentsvalue");
-        } 		
+		if (strText.equals("document")) {
+			expectedvalue = hooks.getValue("documentattachmentsvalue");
+		} else if (strText.equals("image")) {
+			expectedvalue = hooks.getValue("imageattachmentsvalue");
+		} else if (strText.equals("other")) {
+			expectedvalue = hooks.getValue("otherattachmentsvalue");
+		}
 		try {
 			String strOrig = driver.findElement(By.xpath(actualText1)).getText();
 			int intIndex = strOrig.indexOf(expectedvalue);
-		    if(intIndex == - 1){
-		    	System.out.println("expectedvalue not found");
-		    }else{
-		        System.out.println("Found expectedvalue at index " + intIndex);
-		    }
+			if (intIndex == -1) {
+				System.out.println("expectedvalue not found");
+			} else {
+				System.out.println("Found expectedvalue at index " + intIndex);
+			}
 		} catch (Exception e) {
 			// TODO: handle exception
 			logger.info("FAILED: Either the " + expectedvalue + " is not present or Page fails to load");
 		}
 	}
-	
+
 	@Then("^value \"([^\"]*)\" should be displayed having css \"([^\"]*)\"$")
 	public void verifyvaluebycss(String strText1, String actualText2) {
 		String expectedvalue1 = null;
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.cssSelector(actualText2));
-		
+
 		if (strText1.equals("document")) {
-	        	expectedvalue1 = hooks.getValue("documentattachmentsvalue1");
-	    } else if (strText1.equals("image")) {
-	        	expectedvalue1 = hooks.getValue("imageattachmentsvalue1");
-	    } else if (strText1.equals("other")) {
-	        	expectedvalue1 = hooks.getValue("otherattachmentsvalue1");
-	    } 
+			expectedvalue1 = hooks.getValue("documentattachmentsvalue1");
+		} else if (strText1.equals("image")) {
+			expectedvalue1 = hooks.getValue("imageattachmentsvalue1");
+		} else if (strText1.equals("other")) {
+			expectedvalue1 = hooks.getValue("otherattachmentsvalue1");
+		}
 		try {
 			String strOrig1 = driver.findElement(By.cssSelector(actualText2)).getText();
-		      int intIndex1 = strOrig1.indexOf(expectedvalue1);
-		      if(intIndex1 == - 1){
-		         System.out.println("expectedvalue not found");
-		      }else{
-		         System.out.println("Found expectedvalue at index " + intIndex1);
-		      }
+			int intIndex1 = strOrig1.indexOf(expectedvalue1);
+			if (intIndex1 == -1) {
+				System.out.println("expectedvalue not found");
+			} else {
+				System.out.println("Found expectedvalue at index " + intIndex1);
+			}
 		} catch (Exception e) {
 			// TODO: handle exception
 			logger.info("FAILED: Either the " + expectedvalue1 + " is not present or Page fails to load");
 		}
 	}
-	
+
 	@And("I provide from date in textfield having id \"(.*?)\"$")
 	public void fromDateValue(String dateLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.name(dateLocator));
 		driver.findElement(By.id(dateLocator)).sendKeys(hooks.getValue("fromDate"));
 	}
-	
+
 	@And("I provide to date in textfield having id \"(.*?)\"$")
 	public void toDateValue(String dateLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();

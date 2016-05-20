@@ -99,4 +99,10 @@ public class Hooks {
 			logger.info("FAILED: " + by + "\", is not present \"");
 		}
 	}
+	
+	protected void verifyFloridaNumber(String actualValue, String expectedValue)
+	{
+		Assert.assertTrue(Integer.parseInt(actualValue)>Integer.parseInt(expectedValue));
+		
+	}
 }
