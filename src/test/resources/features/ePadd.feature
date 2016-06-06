@@ -8,9 +8,8 @@ Feature: ePadd
 		And I enter <emailFolderLocation> into input field having name "mboxDir1"            
 		And I click on element having id "gobutton"
 		Then I click on "Select All Folder" button having css "button.btn-default.select_all_button"
-		And I click on element having id "gobutton"
+		And I click on element having id "go-button"
 		Then I wait for the page <browserTopPage> to be displayed within "360" seconds
-		
 		Then I click on element having xpath "//img[@src='images/header-menuicon.svg']"
 		Then I click on element having link "Set Images"
 		Then I upload the image having id "profilePhoto"
@@ -274,42 +273,4 @@ Feature: ePadd
 		|"epaddIndexURL"|
 		
 		
-	@ePADD
-	Scenario Outline: ePadd (Appraisal)
-		Given I navigate to <emailSourceURL>
-		And I enter <epaddAchieverName> into input field having name "name"
-		And I enter <epaddPrimaryEmailAddress> into input field having name "alternateEmailAddrs"
-		And I enter <epaddEmailAddress> into input field having name "loginName0"
-		And I enter <epaddPassword> into input field having name "password0"
-		And I click on element having id "gobutton"
-		Then I click on "Select All Folder" button having css "button.btn-default.select_all_button"
-		And I click on element having id "go-button"
-		Then I wait for the page <browserTopPage> to be displayed within "240" seconds
-		
-		Then I click on element having xpath "//img[@src='images/header-menuicon.svg']"
-		Then I click on element having xpath "//a[@id='settings']"
-		Then I click on element having xpath "//button[@id='delete-archive']"
-		Then I handle the alert
-		Then I verify the session folder under "epadd-appraisal/user" folder
-		And I verify the "Browse" link existence 
-		And I navigate to <epaddIndexURL>
-		And I verify the name "name" field on email source page 
-		
-		And I enter <epaddAchieverName> into input field having name "name"
-		And I enter <epaddPrimaryEmailAddress> into input field having name "alternateEmailAddrs"
-		And I enter <epaddEmailAddress> into input field having name "loginName0"
-		And I enter <epaddPassword> into input field having name "password0"
-		And I click on element having id "gobutton"
-		Then I click on "Select All Folder" button having css "button.btn-default.select_all_button"
-		And I provide from date in textfield having id "from"
-		And I provide to date in textfield having id "to"
-		And I click on element having id "go-button"
-		Then I wait for the page <browserTopPage> to be displayed within "240" seconds
-		
-		Then close ePADD
-		
-		Examples:
-		|emailSourceURL  |epaddAchieverName  |epaddPrimaryEmailAddress  |epaddEmailAddress  |epaddPassword  |browserTopPage  |
-		|"emailSourceURL"|"epaddAchieverName"|"epaddPrimaryEmailAddress"|"epaddEmailAddress"|"epaddPassword"|"browserTopPage"|
-		
-		
+	
