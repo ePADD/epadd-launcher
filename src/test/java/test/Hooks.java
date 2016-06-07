@@ -23,6 +23,8 @@ public class Hooks {
 	public static WebDriver driver;
 	public Logger logger = Logger.getLogger(Hooks.class);
 
+    public static boolean runningOnMac() { return System.getProperty("os.name").startsWith("Mac"); }
+
 	@Before
 	/**
 	 * Delete all cookies at the start of each scenario to avoid shared state
@@ -33,6 +35,11 @@ public class Hooks {
 			if (this.getValue("browser").equalsIgnoreCase("firefox")) {
 				driver = new FirefoxDriver();
 			} else if (this.getValue("browser").equalsIgnoreCase("chrome")) {
+                if (runningOnMac()) { 
+                    System.setProperty("webdriver.chrome.driver", "src/test/resources/chromedriver-mac");
+                } else { 
+                    System.err.println ("WARNING!!!! Chrome driver is only specified for Mac?"); 
+                }
 				driver = new ChromeDriver();
 			} else if (this.getValue("browser").equalsIgnoreCase("ie")) {
 				driver = new InternetExplorerDriver();
