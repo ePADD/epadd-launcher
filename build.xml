@@ -1,15 +1,37 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <project name="epadd" default="release" basedir="." xmlns:artifact="antlib:org.apache.maven.artifact.ant">
 
 	<description>
         ePADD Standalone application build script
     </description>
-    <property name="assembly.dir" location="assembly" />
-    <property name="build.classes.dir" location="target/classes" />
-    <property name="mvn.war.dir" location="../epadd/target" />
-    <property name="log4j.props.dir" location="WebContent/WEB-INF/classes" />
-    <property name="lib.dir" location="lib" />
-    <property name="src.dir" location="src/java" />
+    <property name="lib.dir" location="./lib" />
+    <property name="target.dir" location="./target" />
+    <property name="epadd.target.dir" location="../epadd/target" /> <!-- this is where the epadd.war files are stored -->
+    <property environment="env" />
+
+    <target name="standalone-jar">
+         <!-- this targets updates the standalone jar for both discovery and full. -->
+
+         <!-- first, add the stuff the launcher needs, like icons etc. (stored in lib.dir) -->
+         <jar destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar" update="true" basedir="${lib.dir}" includes="index.html,splash-image.png,muse-icon.png,edu/stanford/ejalbert/launching/windows/windowsConfig.properties"/>
+
+          <!-- make a replica of what we have so far, for discovery -->
+          <copy file="${target.dir}/epadd-standalone-jar-with-dependencies.jar" tofile="${target.dir}/epadd-discovery-standalone-jar-with-dependencies.jar"/>
+
+          <!-- add crossdomain.xml only to full epadd-standalone, not to discovery -->
+          <jar destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar" update="true" basedir="${lib.dir}" includes="crossdomain.xml"/>
+
+          <!-- copy the epadd.war file for both discovery and full into the respective standalone jars. the files have to be named as epadd.war, so copy into java.io.tmpdir first -->
+          <copy overwrite="true" file="${epadd.target.dir}/epadd-0.0.1-SNAPSHOT.war" tofile="${java.io.tmpdir}/epadd.war"/>
+          <jar update="true" basedir="${java.io.tmpdir}" destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar" includes="epadd.war"/>
+
+          <copy overwrite="true" file="${epadd.target.dir}/epadd-discovery-0.0.1-SNAPSHOT.war" tofile="${java.io.tmpdir}/epadd.war"/>
+          <jar update="true" basedir="${java.io.tmpdir}" destfile="${target.dir}/epadd-discovery-standalone-jar-with-dependencies.jar" includes="epadd.war"/>
+
+          <!-- rename the files and move them to the current dir -->
+          <move file="${target.dir}/epadd-standalone-jar-with-dependencies.jar" tofile="epadd-standalone.jar"/>
+          <move file="${target.dir}/epadd-discovery-standalone-jar-with-dependencies.jar" tofile="epadd-discovery-standalone.jar"/>
+    </target>
 
 	<target name="exe">
 		<condition property="launch4j.dir" value="launch4j-3.3-macos10.7">
@@ -33,11 +55,11 @@
 		<launch4j configFile="${launch4j.dir}/epadd-discovery.xml" />
 	</target>
 
-<property environment="env" />
 
 <taskdef name="bundleapp"
 	 classname="com.oracle.appbundler.AppBundlerTask"
-         classpath="lib/appbundler-1.0.jar" /> 
+         classpath="${lib.dir}/appbundler-1.0.jar" /> 
+
 <target name="macapp">
     <mkdir dir="dist/epadd" /> <!-- dist/epadd becuase the vol. name on the dmg needs to be Muse and not dist. -->
     <bundleapp outputdirectory="dist/epadd"
@@ -58,7 +80,6 @@
         <arg value="./dist/epadd"/>
         <arg value="-ov"/>
   </exec>
-
 </target>
 
 <target name="macapp-discovery">
@@ -84,6 +105,10 @@
   </exec>
 
 </target>
-<target name="release" depends="exe,macapp,exe-discovery,macapp-discovery"></target>
+
+<target name="both-exe" depends="exe,exe-discovery"></target>
+<target name="both-mac" depends="macapp,macapp-discovery"></target>
+
+<target name="release" depends="standalone-jar,both-exe,both-mac"></target>
 
 </project>
