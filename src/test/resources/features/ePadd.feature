@@ -3,9 +3,9 @@ Feature: ePadd
 	@ePADD
 	Scenario Outline: ePadd (Appraisal, Processing, Discovery Module)
 		Given I navigate to <emailSourceURL>
-		And I enter <achieverName> into input field having name "name"
+		And I enter <donorName> into input field having name "name"
 		And I enter <primaryEmailAddress> into input field having name "alternateEmailAddrs"
-		And I enter <emailFolderLocation> into input field having name "mboxDir1"            
+		And I enter <emailFolderLocation> into input field having name "mboxDir2"            
 		And I click on element having id "gobutton"
 		Then I click on "Select All Folder" button having css "button.btn-default.select_all_button"
 		And I click on element having id "go-button"
@@ -220,8 +220,8 @@ Feature: ePadd
 		Then open ePADD
 		
 		Examples:
-		|emailSourceURL  |achieverName  |primaryEmailAddress  |emailFolderLocation  |emailExportLocation  |emailArchieveLocation  |emailExportSplitLocation  |LexicanURL  |LexicanEditURL  |queryGeneratorPage  |editCorrespondentsPage  |browserTopPage  |epaddIndexURL  |
-		|"emailSourceURL"|"achieverName"|"primaryEmailAddress"|"emailFolderLocation"|"emailExportLocation"|"emailArchieveLocation"|"emailExportSplitLocation"|"LexicanURL"|"LexicanEditURL"|"queryGeneratorPage"|"editCorrespondentsPage"|"browserTopPage"|"epaddIndexURL"|
+		|emailSourceURL  |donorName  |primaryEmailAddress  |emailFolderLocation  |emailExportLocation  |emailArchieveLocation  |emailExportSplitLocation  |LexicanURL  |LexicanEditURL  |queryGeneratorPage  |editCorrespondentsPage  |browserTopPage  |epaddIndexURL  |
+		|"emailSourceURL"|"donorName"|"primaryEmailAddress"|"emailFolderLocation"|"emailExportLocation"|"emailArchieveLocation"|"emailExportSplitLocation"|"LexicanURL"|"LexicanEditURL"|"queryGeneratorPage"|"editCorrespondentsPage"|"browserTopPage"|"epaddIndexURL"|
 		
 		
 	@ePADD	
