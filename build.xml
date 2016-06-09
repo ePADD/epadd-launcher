@@ -37,7 +37,7 @@
 		<condition property="launch4j.dir" value="launch4j-3.3-macos10.7">
 		    <matches string="${os.version}" pattern="^10.[234567]." />
 		</condition>
-		<condition property="launch4j.dir" value="launch4j-3.8">
+		<condition property="launch4j.dir" value="launch4j-macos10.8">
 		    <matches string="${os.version}" pattern="^(10.8|10.9|10.10|10.11)." />
 		</condition>
 		<condition property="launch4j.dir" value="launch4j-3.8-win32">
@@ -115,6 +115,6 @@
 <target name="both-exe" depends="exe,exe-discovery"></target>
 <target name="both-mac" depends="macapp,macapp-discovery"></target>
 
-<target name="release" depends="standalone-jar,both-exe,both-mac"></target>
+<target name="release" depends="both-exe,both-mac"></target>
 
 </project>
