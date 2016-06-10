@@ -40,15 +40,12 @@ public class StepDefs {
 	public static final Logger logger = Logger.getLogger(Main.class.getName());
 
 	String userHome = System.getProperty("user.home");
-	String driveLocation = userHome;
+	String driveLocation = userHome.substring(0, userHome.indexOf("\\"));
 	String opsystem = System.getProperty("os.name");
 
 	public static void main(String args[]) {
-		String userHome = System.getProperty("user.home");
-		String opsystem = System.getProperty("os.name");
-
-		System.out.println("user home is: " + userHome);
-		System.out.println("operating system is: " + opsystem);
+	//	String userHome = System.getProperty("user.home");
+	//	String opsystem = System.getProperty("os.name");
 
 	}
 
@@ -58,11 +55,20 @@ public class StepDefs {
 
 	@Given("^I navigate to \"(.*?)\"$")
 	public void openURL(String url) throws Throwable {
-
+		int flag = '0';
 		Hooks hooks = new Hooks();
 		if (url.equals("emailSourceURL")) {
 			Hooks.driver.get(hooks.getValue("emailSourceURL"));
-		} else {
+			// this.wait(5);
+			String strtext = driver.findElement(By.tagName("body")).getText();
+			// System.out.println("text is:" + strtext);
+			if (strtext.contains("Unable to connect")) {
+				flag = '1';
+				System.out.println("Error in opening epadd application");
+				System.exit(0);
+			}
+		}
+		if ((flag != '1') && (url.equals("epaddIndexURL"))) {
 			Hooks.driver.get(hooks.getValue("epaddIndexURL"));
 		}
 		this.createFolder();
@@ -75,13 +81,14 @@ public class StepDefs {
 
 	@And("I enter \"(.*?)\" into input field having name \"(.*?)\"$")
 	public void enterUserName(String input, String field) throws InterruptedException {
-		String userHome = System.getProperty("user.home");
-		System.out.println("root directory is: " + userHome);
 
 		Hooks hooks = new Hooks();
-		DirLocation search = new DirLocation();
+	//	DirLocation search = new DirLocation();
 		hooks.waitForElement(By.name(field));
 
+		driver.findElement(By.name(field)).sendKeys(hooks.getValue(input));
+	
+		/*
 		if (input.equals("achieverName")) {
 			driver.findElement(By.name(field)).sendKeys(hooks.getValue("achieverName"));
 		} else if (input.equals("primaryEmailAddress")) {
@@ -90,7 +97,7 @@ public class StepDefs {
 
 			if (opsystem.contains("Windows")) {
 				driver.findElement(By.name(field))
-						.sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailFolderLocation"));
+						.sendKeys(hooks.getValue("emailFolderLocation"));
 			} else if (opsystem.contains("Linux")) {
 				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailFolderLocation"));
 			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
@@ -100,27 +107,27 @@ public class StepDefs {
 		} else if (input.equals("emailExportLocation")) {
 			if (opsystem.contains("Windows")) {
 				driver.findElement(By.name(field))
-						.sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailExportLocation"));
+						.sendKeys(hooks.getValue("emailExportLocation"));
 			} else if (opsystem.contains("Linux")) {
 				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailExportLocation"));
 			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
 				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailExportLocation"));
 			}
 
-		} else if (input.equals("emailArchieveLocation")) {
+		} else if (input.equals("emailArchiveLocation")) {
 			if (opsystem.contains("Windows")) {
 				driver.findElement(By.name(field))
-						.sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailArchieveLocation"));
+						.sendKeys(hooks.getValue("emailArchiveLocation"));
 			} else if (opsystem.contains("Linux")) {
-				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailArchieveLocation"));
+				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailArchiveLocation"));
 			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailArchieveLocation"));
+				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailArchiveLocation"));
 			}
 
 		} else if (input.equals("emailExportSplitLocation")) {
 			if (opsystem.contains("Windows")) {
 				driver.findElement(By.name(field))
-						.sendKeys(search.getDirAbsoluteLoc("ePADD") + hooks.getValue("emailExportSplitLocation"));
+						.sendKeys(hooks.getValue("emailExportSplitLocation"));
 			} else if (opsystem.contains("Linux")) {
 				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailExportSplitLocation"));
 			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
@@ -136,6 +143,7 @@ public class StepDefs {
 		} else if (input.equals("epaddPassword")) {
 			driver.findElement(By.name(field)).sendKeys(hooks.getValue("epaddPassword"));
 		}
+		*/
 	}
 
 	@And("I click on element having id \"(.*?)\"$")
@@ -225,6 +233,7 @@ public class StepDefs {
 
 	@Then("copy files$")
 	public void copyFiles() throws InterruptedException {
+		// System.out.println ("inside copy files function");
 		Hooks hooks = new Hooks();
 		File deliverySource = null;
 		File discoverySource = null;
@@ -232,7 +241,9 @@ public class StepDefs {
 		File discoveryDest = null;
 
 		if (opsystem.contains("Windows")) {
-			deliverySource = new File(driveLocation + hooks.getValue("deliverySource"));
+		//	String driveLocation = userHome.substring(0, userHome.indexOf("\\"));
+			deliverySource = new File(hooks.getValue("deliverySource"));
+			// System.out.println("drivelocation is: " + driveLocation);
 		} else if (opsystem.contains("Linux")) {
 			deliverySource = new File(hooks.getValue("deliverySource"));
 		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
@@ -240,7 +251,8 @@ public class StepDefs {
 		}
 
 		if (opsystem.contains("Windows")) {
-			deliveryDest = new File(userHome + hooks.getValue("deliveryDest"));
+			deliveryDest = new File(hooks.getValue("deliveryDest"));
+			// System.out.println("userhome is: " + userHome);
 		} else if (opsystem.contains("Linux")) {
 			deliveryDest = new File(hooks.getValue("deliveryDest"));
 		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
@@ -248,7 +260,8 @@ public class StepDefs {
 		}
 
 		if (opsystem.contains("Windows")) {
-			discoverySource = new File(driveLocation + hooks.getValue("discoverySource"));
+	//		String driveLocation = userHome.substring(0, userHome.indexOf("\\"));
+			discoverySource = new File(hooks.getValue("discoverySource"));
 		} else if (opsystem.contains("Linux")) {
 			discoverySource = new File(hooks.getValue("discoverySource"));
 		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
@@ -256,7 +269,7 @@ public class StepDefs {
 		}
 
 		if (opsystem.contains("Windows")) {
-			discoveryDest = new File(userHome + hooks.getValue("discoveryDest"));
+			discoveryDest = new File(hooks.getValue("discoveryDest"));
 		} else if (opsystem.contains("Linux")) {
 			discoveryDest = new File(hooks.getValue("discoveryDest"));
 		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
@@ -299,7 +312,7 @@ public class StepDefs {
 		File logsFolder = null;
 
 		if (opsystem.contains("Windows")) {
-			screenshotFolder = new File(userHome + hooks.getValue("screenshotFolderPath"));
+			screenshotFolder = new File(hooks.getValue("screenshotFolderPath"));
 		} else if (opsystem.contains("Linux")) {
 			screenshotFolder = new File(hooks.getValue("StrScreenShotFolderPath"));
 		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
@@ -307,7 +320,7 @@ public class StepDefs {
 		}
 
 		if (opsystem.contains("Windows")) {
-			reportFolder = new File(userHome + hooks.getValue("reportsFolderPath"));
+			reportFolder = new File(hooks.getValue("reportsFolderPath"));
 		} else if (opsystem.contains("Linux")) {
 			reportFolder = new File(hooks.getValue("reportsFolderPath"));
 		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
@@ -315,7 +328,7 @@ public class StepDefs {
 		}
 
 		if (opsystem.contains("Windows")) {
-			logsFolder = new File(userHome + hooks.getValue("logsFolderPath"));
+			logsFolder = new File(hooks.getValue("logsFolderPath"));
 		} else if (opsystem.contains("Linux")) {
 			logsFolder = new File(hooks.getValue("logsFolderPath"));
 		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
@@ -325,7 +338,7 @@ public class StepDefs {
 		String timestamp = new SimpleDateFormat("yyyy.MM.dd").format(new Date());
 
 		if (opsystem.contains("Windows")) {
-			newScreenshotFolder = new File(userHome + hooks.getValue("screenshotCapturedFolderPath") + timestamp);
+			newScreenshotFolder = new File(hooks.getValue("screenshotCapturedFolderPath") + timestamp);
 		} else if (opsystem.contains("Linux")) {
 			newScreenshotFolder = new File(hooks.getValue("screenshotCapturedFolderPath") + timestamp);
 		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
@@ -352,28 +365,22 @@ public class StepDefs {
 		String timestamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
 		String stamp = timestamp + ".png";
 		File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-
-		if (opsystem.contains("Windows")) {
-			FileUtils.copyFile(scrFile, new File(newScreenshotFolder + hooks.getValue("StrScreenShotPath")
-					+ hooks.getValue("browser") + "-" + page + "-" + stamp));
-		} else if (opsystem.contains("Linux")) {
-			FileUtils.copyFile(scrFile, new File(newScreenshotFolder + hooks.getValue("StrScreenShotPath")
-					+ hooks.getValue("browser") + "-" + page + "-" + stamp));
-		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-			FileUtils.copyFile(scrFile, new File(newScreenshotFolder + hooks.getValue("StrScreenShotPath")
-					+ hooks.getValue("browser") + "-" + page + "-" + stamp));
-		}
+			FileUtils.copyFile(scrFile, new File(newScreenshotFolder + hooks.getValue("ScreenShotPath")+ hooks.getValue("browser") + "-" + page + "-" + stamp));
+		
 	}
 
 	@And("I verify that \"(.*?)\" is displayed$")
-	public void verifyLexicanURL(String url) {
+	public void verifyLexiconURL(String url) {
 		Hooks hooks = new Hooks();
-		if (url.equals("LexicanURL")) {
+		String currentURL = driver.getCurrentUrl();
+		hooks.verifyElement(currentURL, hooks.getValue(url));
+		/*
+		if (url.equals("LexiconURL")) {
 			String currentURL = driver.getCurrentUrl();
-			hooks.verifyElement(currentURL, hooks.getValue("lexicanURL"));
-		} else if (url.equals("LexicanEditURL")) {
+			hooks.verifyElement(currentURL, hooks.getValue("LexiconURL"));
+		} else if (url.equals("LexiconEditURL")) {
 			String currentURL = driver.getCurrentUrl();
-			hooks.verifyElement(currentURL, hooks.getValue("LexicanEditURL"));
+			hooks.verifyElement(currentURL, hooks.getValue("LexiconEditURL"));
 		} else if (url.equals("queryGeneratorPage")) {
 			String currentURL = driver.getCurrentUrl();
 			hooks.verifyElement(currentURL, hooks.getValue("queryGenerator"));
@@ -381,6 +388,7 @@ public class StepDefs {
 			String currentURL = driver.getCurrentUrl();
 			hooks.verifyElement(currentURL, hooks.getValue("editCorrespondentsPage"));
 		}
+		*/
 	}
 
 	@And("I switch to the new window and verify the url$")
@@ -453,6 +461,13 @@ public class StepDefs {
 				driver.findElement(By.cssSelector(emailNumberLocator)).getText().replaceAll("\\D", ""));
 	}
 
+	@Given("^I enter search text \"([^\"]*)\" in textfield having xpath \"([^\"]*)\"$")
+	public void enter_search_text(String searchtext, String textFieldLocator) {
+		Hooks hooks = new Hooks();
+		hooks.waitForElement(By.xpath(textFieldLocator));
+		driver.findElement(By.xpath(textFieldLocator)).sendKeys(hooks.getValue(searchtext));
+	}
+	/*
 	@And("I enter florida in textfield having xpath \"(.*?)\"$")
 	public void enterFlorida(String textFieldLocator) {
 		Hooks hooks = new Hooks();
@@ -488,6 +503,7 @@ public class StepDefs {
 		driver.findElement(By.xpath(textFieldLocator)).sendKeys(hooks.getValue("paragraph"));
 	}
 
+*/
 	@Then("I verify the number having xpath \"(.*?)\" searched with \"(.*?)\"$")
 	public void verifyNumber(String num, String text) throws InterruptedException {
 		Hooks hooks = new Hooks();
@@ -555,7 +571,7 @@ public class StepDefs {
 		File file = null;
 
 		if (opsystem.contains("Windows")) {
-			file = new File(userHome + hooks.getValue("sessionFolder"));
+			file = new File(hooks.getValue("sessionFolder"));
 		} else if (opsystem.contains("Linux")) {
 			file = new File(hooks.getValue("sessionFolder"));
 		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
@@ -565,7 +581,7 @@ public class StepDefs {
 		if (file.exists()) {
 
 			if (opsystem.contains("Windows")) {
-				FileUtils.deleteDirectory(new File(userHome + hooks.getValue("sessionFolder")));
+				FileUtils.deleteDirectory(new File(hooks.getValue("sessionFolder")));
 			} else if (opsystem.contains("Linux")) {
 				FileUtils.deleteDirectory(new File(hooks.getValue("sessionFolder")));
 			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
@@ -591,7 +607,9 @@ public class StepDefs {
 		hooks.waitForElement(By.id(imageLocator));
 
 		if (opsystem.contains("Windows")) {
-			driver.findElement(By.id(imageLocator)).sendKeys(userHome + hooks.getValue("imageName"));
+			driver.findElement(By.id(imageLocator)).sendKeys(hooks.getValue("imageName"));
+			driver.findElement(By.id(imageLocator)).sendKeys(hooks.getValue("imageName1"));
+			driver.findElement(By.id(imageLocator)).sendKeys(hooks.getValue("imageName2"));
 		} else if (opsystem.contains("Linux")) {
 			driver.findElement(By.id(imageLocator)).sendKeys(hooks.getValue("imageName"));
 		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
@@ -709,4 +727,5 @@ public class StepDefs {
 		hooks.waitForElement(By.name(dateLocator));
 		driver.findElement(By.id(dateLocator)).sendKeys(hooks.getValue("toDate"));
 	}
+
 }
