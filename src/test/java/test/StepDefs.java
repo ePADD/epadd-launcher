@@ -1,34 +1,24 @@
 package test;
 
-import java.io.BufferedReader;
+import cucumber.api.cli.Main;
+import cucumber.api.java.en.And;
+import cucumber.api.java.en.Given;
+import cucumber.api.java.en.Then;
+import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
+import org.openqa.selenium.*;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.Select;
+import org.openqa.selenium.support.ui.WebDriverWait;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
-import org.openqa.selenium.Alert;
-import org.openqa.selenium.By;
-import org.openqa.selenium.Keys;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-import org.openqa.selenium.os.WindowsUtils;
-import org.openqa.selenium.support.ui.ExpectedConditions;
-import org.openqa.selenium.support.ui.Select;
-import org.openqa.selenium.support.ui.WebDriverWait;
-
-import cucumber.api.cli.Main;
-import cucumber.api.java.en.And;
-import cucumber.api.java.en.Given;
-import cucumber.api.java.en.Then;
 
 public class StepDefs {
 	public WebDriver driver;
@@ -40,158 +30,36 @@ public class StepDefs {
 	public static final Logger logger = Logger.getLogger(Main.class.getName());
 
 	String userHome = System.getProperty("user.home");
-	String driveLocation = userHome.substring(0, userHome.indexOf("\\"));
 	String opsystem = System.getProperty("os.name");
+	Process epaddProcess = null;
 
-	public static void main(String args[]) {
-	//	String userHome = System.getProperty("user.home");
-	
-
-	}
+	private Hooks hooks;
+	private String screenshotsDir;
 
 	public StepDefs() {
 		driver = Hooks.driver;
+		hooks = new Hooks();
+		screenshotsDir = hooks.getValue("screenshotsDir");
+		if (screenshotsDir != null)
+			new File(screenshotsDir).mkdirs();
+		logger.info ("Screenshots will be stored in " + screenshotsDir);
 	}
 
 	@Given("^I navigate to \"(.*?)\"$")
 	public void openURL(String url) throws Throwable {
-		int flag = '0';
-		Hooks hooks = new Hooks();
-		if (url.equals("emailSourceURL")) {
-			Hooks.driver.get(hooks.getValue("emailSourceURL"));
-			// this.wait(5);
-			String strtext = driver.findElement(By.tagName("body")).getText();
-			// System.out.println("text is:" + strtext);
-			if (strtext.contains("Unable to connect")) {
-				flag = '1';
-				System.out.println("Error in opening epadd application");
-				System.exit(0);
-			}
-		}
-		if ((flag != '1') && (url.equals("epaddIndexURL"))) {
-			Hooks.driver.get(hooks.getValue("epaddIndexURL"));
-		}
-		this.createFolder();
+        driver.navigate().to(url);
 	}
 
-	@Then("^I wait for (\\d+) sec$")
+	@Given("^I wait for (\\d+) sec$")
 	public void wait(int time) throws InterruptedException {
 		TimeUnit.SECONDS.sleep(time);
 	}
 
-	@And("I enter \"(.*?)\" into input field having name \"(.*?)\"$")
-	public void enterUserName(String input, String field) throws InterruptedException {
-
-		Hooks hooks = new Hooks();
-	//	DirLocation search = new DirLocation();
-		hooks.waitForElement(By.name(field));
-
-		driver.findElement(By.name(field)).sendKeys(hooks.getValue(input));
-	
-		/*
-		if (input.equals("achieverName")) {
-			driver.findElement(By.name(field)).sendKeys(hooks.getValue("achieverName"));
-		} else if (input.equals("primaryEmailAddress")) {
-			driver.findElement(By.name(field)).sendKeys(hooks.getValue("primaryEmailAddress"));
-		} else if (input.equals("emailFolderLocation")) {
-
-			if (opsystem.contains("Windows")) {
-				driver.findElement(By.name(field))
-						.sendKeys(hooks.getValue("emailFolderLocation"));
-			} else if (opsystem.contains("Linux")) {
-				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailFolderLocation"));
-			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailFolderLocation"));
-			}
-
-		} else if (input.equals("emailExportLocation")) {
-			if (opsystem.contains("Windows")) {
-				driver.findElement(By.name(field))
-						.sendKeys(hooks.getValue("emailExportLocation"));
-			} else if (opsystem.contains("Linux")) {
-				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailExportLocation"));
-			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailExportLocation"));
-			}
-
-		} else if (input.equals("emailArchiveLocation")) {
-			if (opsystem.contains("Windows")) {
-				driver.findElement(By.name(field))
-						.sendKeys(hooks.getValue("emailArchiveLocation"));
-			} else if (opsystem.contains("Linux")) {
-				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailArchiveLocation"));
-			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailArchiveLocation"));
-			}
-
-		} else if (input.equals("emailExportSplitLocation")) {
-			if (opsystem.contains("Windows")) {
-				driver.findElement(By.name(field))
-						.sendKeys(hooks.getValue("emailExportSplitLocation"));
-			} else if (opsystem.contains("Linux")) {
-				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailExportSplitLocation"));
-			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-				driver.findElement(By.name(field)).sendKeys(hooks.getValue("emailExportSplitLocation"));
-			}
-
-		} else if (input.equals("epaddAchieverName")) {
-			driver.findElement(By.name(field)).sendKeys(hooks.getValue("epaddAchieverName"));
-		} else if (input.equals("epaddPrimaryEmailAddress")) {
-			driver.findElement(By.name(field)).sendKeys(hooks.getValue("epaddPrimaryEmailAddress"));
-		} else if (input.equals("epaddEmailAddress")) {
-			driver.findElement(By.name(field)).sendKeys(hooks.getValue("epaddEmailAddress"));
-		} else if (input.equals("epaddPassword")) {
-			driver.findElement(By.name(field)).sendKeys(hooks.getValue("epaddPassword"));
-		}
-		*/
-	}
-
-	@And("I click on element having id \"(.*?)\"$")
-	public void clickContinueButton(String continueButtton) {
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.id(continueButtton));
-		driver.findElement(By.id(continueButtton)).click();
-	}
-
-	@Then("I click on \"(.*?)\" button having css \"(.*?)\"$")
-	public void clickSelectAllFoldersButton(String buttonName, String buttonCSS) {
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.cssSelector(buttonCSS));
-		driver.findElement(By.cssSelector(buttonCSS)).click();
-	}
-
-	@Then("I click on element having xpath \"(.*?)\"$")
-	public void clickOnElementHavingXpath(String xpathLocator) {
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.xpath(xpathLocator));
-		driver.findElement(By.xpath(xpathLocator)).click();
-	}
-
-	@Then("I click on element having css \"(.*?)\"$")
-	public void clickOnElementHavingCSS(String cssLocator) {
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.cssSelector(cssLocator));
-		driver.findElement(By.cssSelector(cssLocator)).click();
-	}
-
-	@Then("I click on element having link \"(.*?)\"$")
-	public void clickOnElementHavingLink(String exportLink) {
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.linkText(exportLink));
-		driver.findElement(By.linkText(exportLink)).click();
-	}
-
-	@Then("page title \"(.*?)\" should be displayed having css \"(.*?)\"$")
-	public void verifyPages(String expectedText, String actualTextLocator) {
-		Hooks hooks = new Hooks();
-		String actualText = null;
-		try {
-			actualText = driver.findElement(By.cssSelector(actualTextLocator)).getText();
-			hooks.verifyElement(actualText, expectedText);
-		} catch (Exception e) {
-			// TODO: handle exception
-			logger.info("FAILED: Either the " + actualText + " is not present or Page fails to load");
-		}
+	@Given("I enter (.*?) into input field with name \"(.*?)\"$")
+	public void enterValueInInputField(String inputValue, String fieldName) throws InterruptedException {
+		inputValue = parseValue(inputValue);
+		WebElement inputField = driver.findElement(By.name(fieldName));
+		inputField.sendKeys(inputValue);
 	}
 
 	@Then("I navigate back$")
@@ -199,36 +67,165 @@ public class StepDefs {
 		driver.navigate().back();
 	}
 
-	@Then("close ePADD$")
+	@Then("I close ePADD$")
 	public void closeApplication() throws IOException, InterruptedException {
-		this.wait(5);
-		Process process = Runtime.getRuntime().exec("jps");
-		process.waitFor();
-		BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-		String line = reader.readLine();
-		while (line != null) {
-			if (line.toString().contains("epadd.exe")) {
-				pID = line.substring(0, line.indexOf(" "));
-				break;
-			}
-			line = reader.readLine();
-		}
-		WindowsUtils.killPID(pID);
-		this.wait(10);
+		if (epaddProcess == null)
+			return;
+		epaddProcess.destroy();
 	}
 
-	@Then("open ePADD$")
+	@Given("I open ePADD$")
 	public void openApplication() throws IOException, InterruptedException {
-		ProcessBuilder pb = new ProcessBuilder(driveLocation + "\\epadd.exe");
-		Process process = pb.start();
-		process.waitFor();
-		Thread.sleep(35000);
+		// we'll always launch using epadd-standalone.jar
+		String javaBinary = new Hooks().getValue("javaBinary");
+		if (!new File(javaBinary).exists()) {
+			logger.warn ("Warning: java binary does not exist, is probably misconfigured! " + javaBinary);
+			throw new RuntimeException();
+		}
+
+		String errFile = System.getProperty("java.io.tmpdir") + File.separator + "epadd-test.err.txt";
+		String outFile = System.getProperty("java.io.tmpdir") + File.separator + "epadd-test.out.txt";
+		ProcessBuilder pb = new ProcessBuilder(javaBinary, "-Xmx2g", "-jar", "epadd-standalone.jar", "--no-browser-open");
+		pb.redirectError(new File(errFile));
+		pb.redirectOutput(new File(outFile));
+		logger.info ("Sending epadd output to: " + outFile);
+		epaddProcess = pb.start();
+		logger.info ("Started ePADD");
+	}
+
+	@Then("element with CSS selector \"(.*)\" should have value (.*)$")
+	public void verifyEquals(String selector, String expectedValue) {
+		expectedValue = parseValue(expectedValue);
+		String actualText = driver.findElement(By.cssSelector(selector)).getText();
+		if (!actualText.equals(expectedValue)) {
+			logger.warn ("ACTUAL text for CSS selector " + selector + ": " + actualText + " EXPECTED: " + expectedValue);
+			throw new RuntimeException();
+		}
+		logger.info ("Found expected text for CSS selector " + selector + ": " + actualText);
+	}
+
+	@Then("element with CSS selector \"([^\"]*)\" should contain (.*)$")
+	public void verifyContains(String selector, String expectedValue) {
+		expectedValue = parseValue(expectedValue);
+		String actualText = driver.findElement(By.cssSelector(selector)).getText();
+		if (!actualText.contains(expectedValue)) {
+			logger.warn ("ACTUAL text for CSS selector " + selector + ": " + actualText + " EXPECTED TO CONTAIN: " + expectedValue);
+			throw new RuntimeException();
+		}
+		logger.info ("Found expected text for CSS selector " + selector + ": " + actualText);
 	}
 
 	@Then("^open browser$")
 	public void openBrowser() throws MalformedURLException {
-		Hooks hooks = new Hooks();
 		hooks.openBrowser();
+	}
+
+	@Then("^take full page screenshot called \"(.*?)\"$")
+	public void takeScreenshot(String page) throws Throwable {
+		String timestamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
+		String stamp = timestamp + ".png";
+		Dimension saved = driver.manage().window().getSize();
+//		driver.manage().window().setSize(new Dimension(1280, 2000));
+		File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+		FileUtils.copyFile(scrFile, new File(screenshotsDir + File.separator + hooks.getValue("browser") + "-" + page + "-" + stamp));
+//		driver.manage().window().setSize(saved);
+	}
+
+	@Then("I verify that I am on page \"(.*?)\"$")
+	public void verifyLexiconURL(String expectedURL) {
+		String currentURL = driver.getCurrentUrl();
+		hooks.verifyElement(currentURL, hooks.getValue(expectedURL));
+	}
+
+	@Then("some messages should be displayed in another tab$")
+	public void someMessagesShouldBeDisplayed() throws InterruptedException {
+		Hooks hooks = new Hooks();
+		String parentWindow = driver.getWindowHandle();
+		Set<String> handles = driver.getWindowHandles();
+		for (String windowHandle : handles) {
+			if (!windowHandle.equals(parentWindow)) {
+				driver.switchTo().window(windowHandle);
+				String pageNumberText = driver.findElement(By.cssSelector("#pageNumbering")).getText(); // this will be something like 1/645
+				if (pageNumberText.length() > 0 && pageNumberText.contains("/")) {
+					// everything is fine!
+				} else {
+					throw new RuntimeException("Error: No messages on browse page");
+				}
+				driver.close();
+			}
+		}
+		driver.switchTo().window(parentWindow);
+	}
+
+	@Then("I click on element with xpath \"(.*?)\"$")
+	public void clickOnElementHavingXpath(String xpathLocator) {
+		hooks.waitForElement(By.xpath(xpathLocator));
+		driver.findElement(By.xpath(xpathLocator)).click();
+	}
+
+	@Then("I click on element with id \"(.*?)\"$")
+	public void clickOnElementWithId(String id) {
+		clickOnElementWithCSS('#' + id);
+	}
+
+	@Then("I click on element with CSS selector \"(.*?)\"$")
+	public void clickOnElementWithCSS(String selector) {
+		driver.findElement(By.cssSelector(selector)).click();
+	}
+
+	private int nMessagesOnBrowsePage() {
+		String num = driver.findElement(By.xpath("//div[@id='pageNumbering']")).getText();
+		String totalNumberOfEmails = num.substring(num.indexOf("/")).replace("/", "");
+		int n = -1;
+		try { n = Integer.parseInt(totalNumberOfEmails); } catch (Exception e) { }
+		return n;
+	}
+
+	@And("I check there are (.*) messages and mark them do not transfer $")
+	public void verifyURL(String expectedNumberOfMessages) throws InterruptedException {
+		driver.findElement(By.xpath("//*[text() = 'Family']")).click();
+		driver.wait(2000);
+		// switch to the new tab
+		String parentWindow = driver.getWindowHandle();
+		Set<String> handles = driver.getWindowHandles();
+		for (String windowHandle : handles) {
+			if (!windowHandle.equals(parentWindow)) {
+				driver.switchTo().window(windowHandle);
+
+				if (!driver.findElement(By.id("doNotTransfer")).getAttribute("class").contains("flag-enabled")) {
+					driver.findElement(By.id("doNotTransfer")).click();
+					driver.wait(1000);
+					driver.findElement(By.id("applyToAll")).click();
+				}
+				driver.close();
+			}
+		}
+		driver.switchTo().window(parentWindow);
+	}
+	/////////////////////// REVIEWED UPTIL HERE - SGH /////////////////////////////////////////////
+
+	@And("I click on element having id \"(.*?)\"$")
+	public void clickContinueButton(String continueButtton) {
+		hooks.waitForElement(By.id(continueButtton));
+		driver.findElement(By.id(continueButtton)).click();
+	}
+
+	@Then("I click on \"(.*?)\" button having css \"(.*?)\"$")
+	public void clickSelectAllFoldersButton(String buttonName, String buttonCSS) {
+		hooks.waitForElement(By.cssSelector(buttonCSS));
+		driver.findElement(By.cssSelector(buttonCSS)).click();
+	}
+
+	@Then("I click on element having css \"(.*?)\"$")
+	public void clickOnElementHavingCSS(String cssLocator) {
+		hooks.waitForElement(By.cssSelector(cssLocator));
+		driver.findElement(By.cssSelector(cssLocator)).click();
+	}
+
+	@Then("I click on element having link \"(.*?)\"$")
+	public void clickOnElementHavingLink(String exportLink) {
+		hooks.waitForElement(By.linkText(exportLink));
+		driver.findElement(By.linkText(exportLink)).click();
 	}
 
 	@Then("copy files$")
@@ -299,7 +296,7 @@ public class StepDefs {
 		try {
 			wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//div/a[@href='correspondents']")));
 		} catch (org.openqa.selenium.TimeoutException e) {
-			logger.info(hooks.getValue("browserTopPage") + " did not opened in " + time
+			logger.warn(hooks.getValue("browserTopPage") + " did not opened in " + time
 					+ " Seconds.Exception occured is: " + e);
 		}
 	}
@@ -359,77 +356,8 @@ public class StepDefs {
 		}
 	}
 
-	@Then("^take full page screenshot of \"(.*?)\"$")
-	public void takeScreenshot(String page) throws Throwable {
-		Hooks hooks = new Hooks();
-		String timestamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
-		String stamp = timestamp + ".png";
-		File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-			FileUtils.copyFile(scrFile, new File(newScreenshotFolder + hooks.getValue("ScreenShotPath")+ hooks.getValue("browser") + "-" + page + "-" + stamp));
-		
-	}
 
-	@And("I verify that \"(.*?)\" is displayed$")
-	public void verifyLexiconURL(String url) {
-		Hooks hooks = new Hooks();
-		String currentURL = driver.getCurrentUrl();
-		hooks.verifyElement(currentURL, hooks.getValue(url));
-		/*
-		if (url.equals("LexiconURL")) {
-			String currentURL = driver.getCurrentUrl();
-			hooks.verifyElement(currentURL, hooks.getValue("LexiconURL"));
-		} else if (url.equals("LexiconEditURL")) {
-			String currentURL = driver.getCurrentUrl();
-			hooks.verifyElement(currentURL, hooks.getValue("LexiconEditURL"));
-		} else if (url.equals("queryGeneratorPage")) {
-			String currentURL = driver.getCurrentUrl();
-			hooks.verifyElement(currentURL, hooks.getValue("queryGenerator"));
-		} else if (url.equals("editCorrespondentsPage")) {
-			String currentURL = driver.getCurrentUrl();
-			hooks.verifyElement(currentURL, hooks.getValue("editCorrespondentsPage"));
-		}
-		*/
-	}
 
-	@And("I switch to the new window and verify the url$")
-	public void verifyURL() throws InterruptedException {
-		Hooks hooks = new Hooks();
-		String parentWindow = driver.getWindowHandle();
-		Set<String> handles = driver.getWindowHandles();
-		for (String windowHandle : handles) {
-			if (!windowHandle.equals(parentWindow)) {
-				driver.switchTo().window(windowHandle);
-				String currentURL = driver.getCurrentUrl();
-				hooks.verifyElement(currentURL, hooks.getValue("documentURL"));
-				driver.close();
-			}
-		}
-		driver.switchTo().window(parentWindow);
-	}
-
-	@And("I switch to Family page and click on id \"(.*?)\" and id \"(.*?)\" and verify email number \"(.*?)\"$")
-	public void verifyURL(String doNotTransferLocator, String applyToAllLocator, String emailNumberLocator)
-			throws InterruptedException {
-		Hooks hooks = new Hooks();
-		String parentWindow = driver.getWindowHandle();
-		Set<String> handles = driver.getWindowHandles();
-		for (String windowHandle : handles) {
-			if (!windowHandle.equals(parentWindow)) {
-				driver.switchTo().window(windowHandle);
-				String currentURL = driver.getCurrentUrl();
-				hooks.verifyElement(currentURL, hooks.getValue("familyURL"));
-				if (driver.findElement(By.id(doNotTransferLocator)).getAttribute("class").contains("flag-enabled")) {
-				} else {
-					driver.findElement(By.id(doNotTransferLocator)).click();
-					driver.findElement(By.id(applyToAllLocator)).click();
-				}
-				String num = driver.findElement(By.xpath(emailNumberLocator)).getText();
-				totalNumberOfEmails = num.substring(num.indexOf("/")).replace("/", "");
-				driver.close();
-			}
-		}
-		driver.switchTo().window(parentWindow);
-	}
 
 	@And("I switch to Job page and verify highlighted text having css \"(.*?)\" and email number \"(.*?)\"$")
 	public void verifyJobPage(String highlightedTextLocator, String emailNumberLocator) throws InterruptedException {
@@ -661,59 +589,6 @@ public class StepDefs {
 		hooks.waitForElement(By.name(textfieldLocator));
 	}
 
-	@Then("^value \"([^\"]*)\" should be displayed having xpath \"([^\"]*)\"$")
-	public void verifyvalue(String strText, String actualText1) {
-		String expectedvalue = null;
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.xpath(actualText1));
-		if (strText.equals("document")) {
-			expectedvalue = hooks.getValue("documentattachmentsvalue");
-		} else if (strText.equals("image")) {
-			expectedvalue = hooks.getValue("imageattachmentsvalue");
-		} else if (strText.equals("other")) {
-			expectedvalue = hooks.getValue("otherattachmentsvalue");
-		}
-		try {
-			String strOrig = driver.findElement(By.xpath(actualText1)).getText();
-			int intIndex = strOrig.indexOf(expectedvalue);
-			if (intIndex == -1) {
-				System.out.println("expectedvalue not found");
-			} else {
-				System.out.println("Found expectedvalue at index " + intIndex);
-			}
-		} catch (Exception e) {
-			// TODO: handle exception
-			logger.info("FAILED: Either the " + expectedvalue + " is not present or Page fails to load");
-		}
-	}
-
-	@Then("^value \"([^\"]*)\" should be displayed having css \"([^\"]*)\"$")
-	public void verifyvaluebycss(String strText1, String actualText2) {
-		String expectedvalue1 = null;
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.cssSelector(actualText2));
-
-		if (strText1.equals("document")) {
-			expectedvalue1 = hooks.getValue("documentattachmentsvalue1");
-		} else if (strText1.equals("image")) {
-			expectedvalue1 = hooks.getValue("imageattachmentsvalue1");
-		} else if (strText1.equals("other")) {
-			expectedvalue1 = hooks.getValue("otherattachmentsvalue1");
-		}
-		try {
-			String strOrig1 = driver.findElement(By.cssSelector(actualText2)).getText();
-			int intIndex1 = strOrig1.indexOf(expectedvalue1);
-			if (intIndex1 == -1) {
-				System.out.println("expectedvalue not found");
-			} else {
-				System.out.println("Found expectedvalue at index " + intIndex1);
-			}
-		} catch (Exception e) {
-			// TODO: handle exception
-			logger.info("FAILED: Either the " + expectedvalue1 + " is not present or Page fails to load");
-		}
-	}
-
 	@And("I provide from date in textfield having id \"(.*?)\"$")
 	public void fromDateValue(String dateLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
@@ -726,6 +601,18 @@ public class StepDefs {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.name(dateLocator));
 		driver.findElement(By.id(dateLocator)).sendKeys(hooks.getValue("toDate"));
+	}
+
+	public String parseValue(String s) {
+		Hooks hooks = new Hooks();
+		// if the value is <abc> then we read the value of property abc in the hook. otherwise we use it as is.
+		if (s == null)
+			return null;
+		if (s.startsWith("<") && s.endsWith(">"))
+			s = hooks.getValue(s.substring(1, s.length()-1));
+		if (s.startsWith("\"") && s.endsWith("\"") && s.length() >= 2) // strip quotes -- if "abc", simply make it abc
+			s = s.substring(1, s.length()-1);
+		return s;
 	}
 
 }

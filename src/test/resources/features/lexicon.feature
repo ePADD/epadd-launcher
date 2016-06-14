@@ -1,130 +1,9 @@
 Feature: ePadd
 	@ePADD
 	Scenario Outline: ePadd (Appraisal, Processing, Discovery Module)
-		
-        Given I open ePADD
-        And I navigate to "http://localhost:9099/epadd/browse-top"
+		Given I open ePADD
+		And I navigate to "http://localhost:9099/epadd/browse-top"
 		And I wait for 10 sec
-
-	    # upload images
-		And I click on element having id "more-options"
-		And I wait for 1 sec
-		And I click on element having link "Set Images"
-
-		And I enter <profilePhoto> into input field with name "profilePhoto"
-		And I enter <bannerImage> into input field with name "bannerImage"
-		And I enter <landingPhoto> into input field with name "landingPhoto"
-		Then take full page screenshot called "set-images"
-		And I click on element having id "upload-btn"
-
-		Given I navigate to "http://localhost:9099/epadd/browse-top"
-		Then take full page screenshot called "browse-top"
-
-		# now check the # of attachments
-		Given I wait for 5 sec
-		Then element with CSS selector "#nImageAttachments" should have value <expectedImageAttachments>
-		And element with CSS selector "#nDocAttachments" should have value <expectedDocAttachments>
-		And element with CSS selector "#nOtherAttachments" should have value <expectedOtherAttachments>
-
-		##### correspondents and entities
-
-		# correspondents
-		Given I click on element having link "Browse"
-
-		And I click on element with xpath "//div/a[@href='correspondents']"
-		And I wait for 2 sec
-		Then element with CSS selector "span.field-name" should have value "All Correspondents"
-
-		Given I click on element having css "td > a"
-		And I wait for 2 sec
-		Then some messages should be displayed in another tab
-
-		Given I wait for 2 sec
-		And I click on element having css "button.btn-default > i"
-		And I wait for 2 sec
-		Then element with CSS selector "span.field-name" should have value "Top correspondents graph"
-		Then take full page screenshot called "correspondents-graph"
-		Given I navigate back
-		And I wait for 2 sec
-		Then I navigate back
-		And I wait for 2 sec
-
-		# persons
-		Given I click on element with xpath "//div/a[@href='entities?type=en_person']"
-		And I wait for 2 sec
-		Then element with CSS selector "span.field-name" should have value "Person entities"
-
-		Given I click on element having css "td > span"
-		And I wait for 2 sec
-		Then some messages should be displayed in another tab
-
-		Then I click on element having css "button.btn-default > i"
-		And I wait for 2 sec
-		Then element with CSS selector "span.field-name" should contain "Top entities graph"
-		Then take full page screenshot called "person-graph"
-
-		Given I navigate back
-		And I wait for 2 sec
-		Then I navigate back
-		And I wait for 2 sec
-
-		# orgs
-		Given I click on element with xpath "//div/a[@href='entities?type=en_org']"
-		And I wait for 2 sec
-		Then element with CSS selector "span.field-name" should have value "Organisation entities"
-
-		Given I click on element having css "td > span"
-		And I wait for 2 sec
-		Then some messages should be displayed in another tab
-
-		Then I click on element having css "button.btn-default > i"
-		And I wait for 2 sec
-		Then element with CSS selector "span.field-name" should contain "Top entities graph"
-		Then take full page screenshot called "org-graph"
-
-		Given I navigate back
-		And I wait for 2 sec
-		Then I navigate back
-		And I wait for 2 sec
-
-		# locs
-		Given I click on element with xpath "//div/a[@href='entities?type=en_loc']"
-		And I wait for 2 sec
-		Then element with CSS selector "span.field-name" should have value "Location entities"
-
-		Given I click on element having css "td > span"
-		And I wait for 2 sec
-		Then some messages should be displayed in another tab
-
-		Then I click on element having css "button.btn-default > i"
-		And I wait for 2 sec
-		Then element with CSS selector "span.field-name" should contain "Top entities graph"
-		Then take full page screenshot called "loc-graph"
-
-		Given I navigate back
-		And I wait for 2 sec
-		Then I navigate back
-		And I wait for 2 sec
-
-		##### attachments #######
-		# images
-		Then I click on element with xpath "//div/a[@href='image-attachments']"
-		Then take full page screenshot called "image-attachment"
-		Then I navigate back
-
-		# docs
-		Then I click on element with xpath "//div/a[@href='attachments?type=doc']"
-		Then element with CSS selector "span.field-value" should contain "Document Attachments"
-		Then I click on element having css "td > a"
-		And some messages should be displayed in another tab
-		Then I navigate back
-
-		# non-docs
-		Then I click on element with xpath "//div/a[@href='attachments?type=nondoc']"
-		Then element with CSS selector "span.field-value" should contain "Other Attachments"
-		Then I click on element having css "td > a"
-		And some messages should be displayed in another tab
-		Then I navigate back
 
 		##### lexicon testing
 		Given I click on element with xpath "//div/a[@href='lexicon']"
@@ -133,8 +12,9 @@ Feature: ePadd
 		Given I click on element with id "edit-lexicon"
 		Then I verify that I am on page <LexiconEditURL>
 		Given I navigate back
-		Then I click on element with xpath "//*[text() = 'Family']"
-		And I switch to Family page and click on id "doNotTransfer" and id "applyToAll" and verify email number "//div[@id='pageNumbering']" 
+
+		# mark family messages do-not-transfer
+		And I switch to Family page and click on id "doNotTransfer" and id "applyToAll" and verify email number ""
 		Then I click on element having link "Export"
 		Then I click on element having link "Do not transfer" 
 		And I verify the total number of emails not to be transfered having css "span.field-value" 
@@ -143,7 +23,7 @@ Feature: ePadd
 		Then I click on element having css "button.btn-default > i"
 		Then take full page screenshot called "lexicon graph"
 		Then I navigate back
-		And I verify that I am on page <LexiconURL>
+		And I verify that I am on page http://localhost:9099/epadd/lexicon
 		Then I select "Sensitive" option by text from dropdown having id "lexiconName"
 		Then I click on element with xpath "//*[text() = 'Job']"
 		And I switch to Job page and verify highlighted text having css "span.hilitedTerm.rounded" and email number "//div[@id='pageNumbering']"
