@@ -18,6 +18,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.TimeUnit;
 
 public class StepDefs {
@@ -32,6 +33,7 @@ public class StepDefs {
 	String userHome = System.getProperty("user.home");
 	String opsystem = System.getProperty("os.name");
 	Process epaddProcess = null;
+	Stack<String> tabStack = new Stack<>();
 
 	private Hooks hooks;
 	private String screenshotsDir;
@@ -93,7 +95,7 @@ public class StepDefs {
 		logger.info ("Started ePADD");
 	}
 
-	@Then("element with CSS selector \"(.*)\" should have value (.*)$")
+	@Then("CSS element \"(.*)\" should have value (.*)$")
 	public void verifyEquals(String selector, String expectedValue) {
 		expectedValue = parseValue(expectedValue);
 		String actualText = driver.findElement(By.cssSelector(selector)).getText();
@@ -104,7 +106,7 @@ public class StepDefs {
 		logger.info ("Found expected text for CSS selector " + selector + ": " + actualText);
 	}
 
-	@Then("element with CSS selector \"([^\"]*)\" should contain (.*)$")
+	@Then("CSS element \"([^\"]*)\" should contain (.*)$")
 	public void verifyContains(String selector, String expectedValue) {
 		expectedValue = parseValue(expectedValue);
 		String actualText = driver.findElement(By.cssSelector(selector)).getText();
@@ -120,7 +122,7 @@ public class StepDefs {
 		hooks.openBrowser();
 	}
 
-	@Then("^take full page screenshot called \"(.*?)\"$")
+	@Then("^I take full page screenshot called \"(.*?)\"$")
 	public void takeScreenshot(String page) throws Throwable {
 		String timestamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
 		String stamp = timestamp + ".png";
@@ -157,22 +159,25 @@ public class StepDefs {
 		driver.switchTo().window(parentWindow);
 	}
 
-	@Then("I click on element with xpath \"(.*?)\"$")
+
+	@Given("I click on CSS element \"(.*?)\"$")
+	public void clickOnElementWithCSS(String selector) {
+		driver.findElement(By.cssSelector(selector)).click();
+	}
+
+	@Given("I click on \"(.*?)\"$")
+	public void clickOn(String linkText) {
+		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
+		driver.findElement(By.xpath("//*[text() = '" + linkText + "']")).click(); // seems to be no way of getting text of a link through CSS
+	}
+
+	@Then("I click on xpath element \"(.*?)\"$")
 	public void clickOnElementHavingXpath(String xpathLocator) {
 		hooks.waitForElement(By.xpath(xpathLocator));
 		driver.findElement(By.xpath(xpathLocator)).click();
 	}
 
-	@Then("I click on element with id \"(.*?)\"$")
-	public void clickOnElementWithId(String id) {
-		clickOnElementWithCSS('#' + id);
-	}
-
-	@Then("I click on element with CSS selector \"(.*?)\"$")
-	public void clickOnElementWithCSS(String selector) {
-		driver.findElement(By.cssSelector(selector)).click();
-	}
-
+	@Then("I check there are (\\d*) messages on the page")
 	private int nMessagesOnBrowsePage() {
 		String num = driver.findElement(By.xpath("//div[@id='pageNumbering']")).getText();
 		String totalNumberOfEmails = num.substring(num.indexOf("/")).replace("/", "");
@@ -181,34 +186,58 @@ public class StepDefs {
 		return n;
 	}
 
-	@And("I check there are (.*) messages and mark them do not transfer $")
-	public void verifyURL(String expectedNumberOfMessages) throws InterruptedException {
-		driver.findElement(By.xpath("//*[text() = 'Family']")).click();
-		driver.wait(2000);
-		// switch to the new tab
+	@Then("I check for (\\d*) messages on the page")
+	public void checkMessagesOnBrowsePage(int nExpectedMessages) {
+		int nActualMessages = nMessagesOnBrowsePage();
+		if (nActualMessages != nExpectedMessages)
+			throw new RuntimeException("Expected " + nExpectedMessages + " found " + nActualMessages);
+	}
+
+	@Given("I switch to the \"(.*)\" tab$")
+	public void switchToTab(String title) throws InterruptedException {
 		String parentWindow = driver.getWindowHandle();
 		Set<String> handles = driver.getWindowHandles();
 		for (String windowHandle : handles) {
 			if (!windowHandle.equals(parentWindow)) {
 				driver.switchTo().window(windowHandle);
-
-				if (!driver.findElement(By.id("doNotTransfer")).getAttribute("class").contains("flag-enabled")) {
-					driver.findElement(By.id("doNotTransfer")).click();
-					driver.wait(1000);
-					driver.findElement(By.id("applyToAll")).click();
+				if (title.equals(driver.getTitle())) {
+					tabStack.push(parentWindow);
+					return;
 				}
-				driver.close();
 			}
 		}
+		logger.warn ("Error: tab with title " + title + " not found!");
+		// title not found? return to parentWindow
 		driver.switchTo().window(parentWindow);
 	}
-	/////////////////////// REVIEWED UPTIL HERE - SGH /////////////////////////////////////////////
 
-	@And("I click on element having id \"(.*?)\"$")
-	public void clickContinueButton(String continueButtton) {
-		hooks.waitForElement(By.id(continueButtton));
-		driver.findElement(By.id(continueButtton)).click();
+	@Given("I close tab")
+	public void closeTab() throws InterruptedException { driver.close(); }
+
+	@Given("I switch to the previous tab")
+	public void switchTabBack() throws InterruptedException {
+		if (tabStack.size() < 1) {
+			logger.warn ("Warning: trying to pop tab stack when it is empty!");
+			return;
+		}
+
+		String lastWindow = tabStack.pop();
+		switchToTab (lastWindow);
 	}
+
+	@Given("I mark all messages \"Do not transfer\"")
+	public void markDNT() throws InterruptedException {
+		WebElement e = driver.findElement(By.id("doNotTransfer"));
+
+		if (!e.getAttribute("class").contains("flag-enabled")) {
+			driver.findElement(By.id("doNotTransfer")).click();
+			wait(1);
+		}
+
+		driver.findElement(By.id("applyToAll")).click();
+	}
+
+	/////////////////////// REVIEWED UPTIL HERE - SGH /////////////////////////////////////////////
 
 	@Then("I click on \"(.*?)\" button having css \"(.*?)\"$")
 	public void clickSelectAllFoldersButton(String buttonName, String buttonCSS) {
@@ -220,12 +249,6 @@ public class StepDefs {
 	public void clickOnElementHavingCSS(String cssLocator) {
 		hooks.waitForElement(By.cssSelector(cssLocator));
 		driver.findElement(By.cssSelector(cssLocator)).click();
-	}
-
-	@Then("I click on element having link \"(.*?)\"$")
-	public void clickOnElementHavingLink(String exportLink) {
-		hooks.waitForElement(By.linkText(exportLink));
-		driver.findElement(By.linkText(exportLink)).click();
 	}
 
 	@Then("copy files$")

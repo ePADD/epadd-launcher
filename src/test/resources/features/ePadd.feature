@@ -7,29 +7,29 @@ Feature: ePadd
 		And I wait for 10 sec
 
 	    # upload images
-		And I click on element having id "more-options"
+		And I click on CSS element "#more-options"
 		And I wait for 1 sec
-		And I click on element having link "Set Images"
+		And I click on "Set Images"
 
 		And I enter <profilePhoto> into input field with name "profilePhoto"
 		And I enter <bannerImage> into input field with name "bannerImage"
 		And I enter <landingPhoto> into input field with name "landingPhoto"
-		Then take full page screenshot called "set-images"
-		And I click on element having id "upload-btn"
+		Then I take full page screenshot called "set-images"
+		And I click on CSS element "#upload-btn"
 
 		Given I navigate to "http://localhost:9099/epadd/browse-top"
-		Then take full page screenshot called "browse-top"
+		Then I take full page screenshot called "browse-top"
 
 		# now check the # of attachments
 		Given I wait for 5 sec
-		Then element with CSS selector "#nImageAttachments" should have value <expectedImageAttachments>
-		And element with CSS selector "#nDocAttachments" should have value <expectedDocAttachments>
-		And element with CSS selector "#nOtherAttachments" should have value <expectedOtherAttachments>
+		Then CSS element "#nImageAttachments" should have value <expectedImageAttachments>
+		And CSS element "#nDocAttachments" should have value <expectedDocAttachments>
+		And CSS element "#nOtherAttachments" should have value <expectedOtherAttachments>
 
 		##### correspondents and entities
 
 		# correspondents
-		Given I click on element having link "Browse"
+		Given I click on the "Browse" link
 
 		And I click on element with xpath "//div/a[@href='correspondents']"
 		And I wait for 2 sec
@@ -127,14 +127,22 @@ Feature: ePadd
 		Then I navigate back
 
 		##### lexicon testing
-		Given I click on element with xpath "//div/a[@href='lexicon']"
-		Then element with CSS selector "span.field-value" should contain "Lexicon Hits"
+		Given I click on xpath element "//div/a[@href='lexicon']"
+		Then CSS element "span.field-value" should contain "Lexicon Hits"
 
-		Given I click on element with id "edit-lexicon"
+		# check that the lexicon edit page is alive
+		Given I click on CSS element "#edit-lexicon"
 		Then I verify that I am on page <LexiconEditURL>
-		Given I navigate back
-		Then I click on element with xpath "//*[text() = 'Family']"
-		And I switch to Family page and click on id "doNotTransfer" and id "applyToAll" and verify email number "//div[@id='pageNumbering']" 
+		And I navigate back
+
+	 	# mark family messages do-not-transfer
+		Given I click on "Family"
+		And I switch to the "Family" tab
+		Then I check for 320 messages on the page
+		Given I mark all messages "Do not transfer"
+		And I close tab
+
+		# export from appraisal
 		Then I click on element having link "Export"
 		Then I click on element having link "Do not transfer" 
 		And I verify the total number of emails not to be transfered having css "span.field-value" 
