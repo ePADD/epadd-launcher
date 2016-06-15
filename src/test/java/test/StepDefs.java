@@ -139,6 +139,7 @@ public class StepDefs {
 		hooks.verifyElement(currentURL, hooks.getValue(expectedURL));
 	}
 
+	// check for some messages in another tab, then close it
 	@Then("some messages should be displayed in another tab$")
 	public void someMessagesShouldBeDisplayed() throws InterruptedException {
 		Hooks hooks = new Hooks();
@@ -147,11 +148,11 @@ public class StepDefs {
 		for (String windowHandle : handles) {
 			if (!windowHandle.equals(parentWindow)) {
 				driver.switchTo().window(windowHandle);
-				String pageNumberText = driver.findElement(By.cssSelector("#pageNumbering")).getText(); // this will be something like 1/645
-				if (pageNumberText.length() > 0 && pageNumberText.contains("/")) {
-					// everything is fine!
-				} else {
+				int nMessages = nMessagesOnBrowsePage();
+				if (nMessages <= 0) {
 					throw new RuntimeException("Error: No messages on browse page");
+				} else {
+					logger.info (nMessages + " messages on the browse page");
 				}
 				driver.close();
 			}
@@ -159,16 +160,36 @@ public class StepDefs {
 		driver.switchTo().window(parentWindow);
 	}
 
-
 	@Given("I click on CSS element \"(.*?)\"$")
 	public void clickOnElementWithCSS(String selector) {
 		driver.findElement(By.cssSelector(selector)).click();
 	}
 
+	// be careful linkText should not have single or double quotes
+	@Given("I click on link containing \"(.*?)\"$")
+	public void clickOnLinkContaining(String linkText) {
+		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
+		List<WebElement> es = driver.findElements(By.xpath("//*[contains(text(), '" + linkText + "')]"));
+		for (WebElement e: es) {
+			// click on the first displayed element
+			if (e.isDisplayed()) {
+				e.click();
+				break;
+			}
+		}
+	}
+
+	// will click on the link with the exact linkText if available; if not, on a link containing linkText
 	@Given("I click on \"(.*?)\"$")
 	public void clickOn(String linkText) {
 		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
-		driver.findElement(By.xpath("//*[text() = '" + linkText + "']")).click(); // seems to be no way of getting text of a link through CSS
+		WebElement e = null;
+
+		try { driver.findElement(By.xpath("//*[text() = '" + linkText + "']")); } catch (Exception e1)  { } // ignore the ex, we'll try to find a link containing it
+		if (e != null)
+			e.click(); // seems to be no way of getting text of a link through CSS
+		else
+			clickOnLinkContaining(linkText);
 	}
 
 	@Then("I click on xpath element \"(.*?)\"$")
