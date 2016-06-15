@@ -31,7 +31,7 @@ Feature: ePadd
 		# correspondents
 		Given I click on "Browse"
 
-		And I click on link containing "Correspondents"
+		And I click on "Correspondents"
 		And I wait for 2 sec
 		Then CSS element "span.field-name" should have value "All Correspondents"
 
@@ -50,11 +50,11 @@ Feature: ePadd
 
 		# persons
 		Given I click on "Browse"
-		And I click on link containing "Persons"
+		And I click on "Persons"
 		And I wait for 2 sec
 		Then CSS element "span.field-name" should have value "Person entities"
 
-		Given I click on element having css "td > span"
+		Given I click on CSS element "td > span"
 		And I wait for 2 sec
 		Then some messages should be displayed in another tab
 
@@ -68,11 +68,11 @@ Feature: ePadd
 
 		# orgs
 		Given I click on "Browse"
-		And I click on link containing "Organizations"
+		And I click on "Organizations"
 		And I wait for 2 sec
 		Then CSS element "span.field-name" should have value "Organisation entities"
 
-		Given I click on element having css "td > span"
+		Given I click on CSS element "td > span"
 		And I wait for 2 sec
 		Then some messages should be displayed in another tab
 
@@ -86,11 +86,11 @@ Feature: ePadd
 
 		# locs
 		Given I click on "Browse"
-		And I click on link containing "Locations"
+		And I click on "Locations"
 		And I wait for 2 sec
 		Then CSS element "span.field-name" should have value "Location entities"
 
-		Given I click on element having css "td > span"
+		Given I click on CSS element "td > span"
 		And I wait for 2 sec
 		Then some messages should be displayed in another tab
 
@@ -112,14 +112,14 @@ Feature: ePadd
 		Given I navigate back
 		And I click on "Document attachments"
 		Then CSS element "span.field-value" should contain "Document Attachments"
-		Given I click on element having css "td > a"
+		Given I click on CSS element "td > a"
 		Then some messages should be displayed in another tab
 		And I navigate back
 
 		# non-docs
 		Given I click on "Other attachments"
 		Then CSS element "span.field-value" should contain "Other Attachments"
-		Then I click on element having css "td > a"
+		Then I click on CSS element "td > a"
 		And some messages should be displayed in another tab
 		Then I navigate back
 
@@ -139,13 +139,14 @@ Feature: ePadd
 		Given I mark all messages "Do not transfer"
 		And I close tab
 
-		# export from appraisal
+		# verify the dnt
 		Then I click on "Export"
 		Then I click on "Do not transfer"
-		And I verify the total number of emails not to be transfered having css "span.field-value" 
+		And I verify the total number of emails not to be transferred having css "span.field-value"
+
 		Then I click on "Browse"
 		Then I click on xpath element "//div/a[@href='lexicon']"
-		Then I click on element having css "button.btn-default > i"
+		Then I click on CSS element "button.btn-default > i"
 		Then I take full page screenshot called "lexicon graph"
 		Then I navigate back
 		And I verify that I am on page <LexiconURL>
@@ -218,7 +219,7 @@ Feature: ePadd
 		And I enter <emailArchiveLocation> into input field with name "sourceDir"
 		Then I click on element having id "gobutton"
 		Then I wait for 5 sec
-		Then I click on element having css "div.landing-img"
+		Then I click on CSS element "div.landing-img"
 		Then I click on element having id "enter"
 		Then I click on xpath element "//a[contains(.,'Authorities')]"
 		Then I wait for 5 sec

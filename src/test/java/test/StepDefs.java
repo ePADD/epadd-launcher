@@ -53,7 +53,7 @@ public class StepDefs {
 	}
 
 	@Given("^I wait for (\\d+) sec$")
-	public void wait(int time) throws InterruptedException {
+	public void waitFor(int time) throws InterruptedException {
 		TimeUnit.SECONDS.sleep(time);
 	}
 
@@ -167,7 +167,7 @@ public class StepDefs {
 
 	// be careful linkText should not have single or double quotes
 	@Given("I click on link containing \"(.*?)\"$")
-	public void clickOnLinkContaining(String linkText) {
+	private void clickOnLinkContaining(String linkText) {
 		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
 		List<WebElement> es = driver.findElements(By.xpath("//*[contains(text(), '" + linkText + "')]"));
 		for (WebElement e: es) {
@@ -181,15 +181,17 @@ public class StepDefs {
 
 	// will click on the link with the exact linkText if available; if not, on a link containing linkText
 	@Given("I click on \"(.*?)\"$")
-	public void clickOn(String linkText) {
+	public void clickOn(String linkText) throws InterruptedException {
 		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
 		WebElement e = null;
 
 		try { driver.findElement(By.xpath("//*[text() = '" + linkText + "']")); } catch (Exception e1)  { } // ignore the ex, we'll try to find a link containing it
-		if (e != null)
+		if (e != null) {
 			e.click(); // seems to be no way of getting text of a link through CSS
+		}
 		else
 			clickOnLinkContaining(linkText);
+		waitFor(1);
 	}
 
 	@Then("I click on xpath element \"(.*?)\"$")
@@ -233,7 +235,14 @@ public class StepDefs {
 	}
 
 	@Given("I close tab")
-	public void closeTab() throws InterruptedException { driver.close(); }
+	public void closeTab() throws InterruptedException {
+		driver.close();
+		// need to explicitly switch to last window, otherwise driver will stop working
+		if (tabStack.size() > 0) {
+			String s = tabStack.pop();
+			driver.switchTo().window(s);
+		}
+	}
 
 	@Given("I switch to the previous tab")
 	public void switchTabBack() throws InterruptedException {
@@ -258,18 +267,18 @@ public class StepDefs {
 		driver.findElement(By.id("applyToAll")).click();
 	}
 
+	@Then("I click on CSS element \"(.*?)\"$")
+	public void clickOnElementHavingCSS(String cssLocator) {
+		hooks.waitForElement(By.cssSelector(cssLocator));
+		driver.findElement(By.cssSelector(cssLocator)).click();
+	}
+
 	/////////////////////// REVIEWED UPTIL HERE - SGH /////////////////////////////////////////////
 
 	@Then("I click on \"(.*?)\" button having css \"(.*?)\"$")
 	public void clickSelectAllFoldersButton(String buttonName, String buttonCSS) {
 		hooks.waitForElement(By.cssSelector(buttonCSS));
 		driver.findElement(By.cssSelector(buttonCSS)).click();
-	}
-
-	@Then("I click on element having css \"(.*?)\"$")
-	public void clickOnElementHavingCSS(String cssLocator) {
-		hooks.waitForElement(By.cssSelector(cssLocator));
-		driver.findElement(By.cssSelector(cssLocator)).click();
 	}
 
 	@Then("copy files$")
