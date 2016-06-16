@@ -7,7 +7,7 @@ Feature: ePadd
 		And I wait for 20 sec
 
 	    # upload images
-		And I click on CSS element "#more-options"
+	    And I find CSS element "#more-options" and click on it
 		And I wait for 1 sec
 		And I click on "Set Images"
 
@@ -15,7 +15,7 @@ Feature: ePadd
 		And I enter <bannerImage> into input field with name "bannerImage"
 		And I enter <landingPhoto> into input field with name "landingPhoto"
 		Then I take full page screenshot called "set-images"
-		And I click on CSS element "#upload-btn"
+		And I click on "Upload"
 
 		Given I navigate to "http://localhost:9099/epadd/browse-top"
 		Then I take full page screenshot called "browse-top"
@@ -123,87 +123,92 @@ Feature: ePadd
 		And some messages should be displayed in another tab
 		Then I navigate back
 
-		##### lexicon testing
+	     ##### lexicon testing
 		Given I click on "Lexicon search"
+		And I verify that I am on page "http://localhost:9099/epadd/lexicon"
 		Then CSS element "span.field-value" should contain "Lexicon Hits"
 
-		# check that the lexicon edit page is alive
-		Given I click on CSS element "#edit-lexicon"
-		Then I verify that I am on page <LexiconEditURL>
+	 # check that the lexicon edit page is alive
+		Given I click on "View/Edit Lexicon"
+		Then I verify that I am on page "http://localhost:9099/epadd/edit-lexicon?lexicon=general"
 		And I navigate back
 
-	 	# mark family messages do-not-transfer
+	  # mark family messages do-not-transfer
 		Given I click on "Family"
 		And I switch to the "Family" tab
 		Then I check for 320 messages on the page
 		Given I mark all messages "Do not transfer"
 		And I close tab
 
-		# verify the dnt
-		Then I click on "Export"
-		Then I click on "Do not transfer"
-		And I verify the total number of emails not to be transferred having css "span.field-value"
+	 # verify the dnt got applied
+		Given I click on "Export"
+		And I click on "Do not transfer"
+		Then CSS element "span.field-value" should start with a number > 0
 
-		Then I click on "Browse"
-		Then I click on xpath element "//div/a[@href='lexicon']"
-		Then I click on CSS element "button.btn-default > i"
-		Then I take full page screenshot called "lexicon graph"
-		Then I navigate back
-		And I verify that I am on page <LexiconURL>
-		Then I select "Sensitive" option by text from dropdown having id "lexiconName"
-		Then I click on xpath element "//*[text() = 'Job']"
+		Given I click on "Browse"
+		And I click on "Lexicon search"
+		And I click on "Go To Graph View"
+		Then I take full page screenshot called "lexicon-graph"
+		And I navigate back
+
+		# try out the sensitive lexicon
+		Then I set dropdown "#lexiconName" to "Sensitive"
+		And I click on "Job"
+		And I switch to the "Job" tab
+		Then I check for 400 messages on the page
+		And I close tab
+
+		# check sensitive messages
+		Then I click on "Sensitive messages"
 		And I switch to Job page and verify highlighted text having css "span.hilitedTerm.rounded" and email number "//div[@id='pageNumbering']"
 		Then I click on "Browse"
 		Then I click on xpath element "//div/a[@href='browse?sensitive=true']"
-
-		Then page title "Date:" should be displayed having css "td.muted"
+		And some messages should be displayed in another tab
 		Then I navigate back
-		Then I click on "Search"
-		And I enter search text "floridaText" in textfield having xpath "//input[@name='term']"
-		Then I click on xpath element "//button[@onclick='handle_click()']"
-		Then I verify the number having xpath "//div[@id='pageNumbering']" searched with "florida"
-		Then I click on "Search"
-		And I enter search text "kidcareText" in textfield having xpath "//input[@name='term']"
-		Then I click on xpath element "//input[@name='searchType']"
-		Then I click on xpath element "//button[@onclick='handle_click()']"
-		Then I verify the number having xpath "//div[@id='pageNumbering']" searched with "kidcare"
-		Then I click on "Search"
-		And I enter search text "paragraph" in textfield having xpath "//textarea[@id='refText']"
-		Then I click on xpath element "//button[@name='Go']"
-		And I verify that I am on page <queryGeneratorPage>
-		Then I verify the number of highlighted texts having css "span.muse-highlight"
-		Then I verify the number of underlined texts having css "span.muse-NER-name"
-		Then I click on "Search"
-		And I enter search text "newUserName" in textfield having xpath "//input[@name='term']"
-		Then I click on xpath element "//button[@onclick='handle_click()']"
-		Then I verify the number having xpath "//div[@id='pageNumbering']" searched with "Peter Chan"
-		Then I click on "Search"
-		And I enter search text "budgetText" in textfield having xpath "//input[@name='term']"
-		Then I click on xpath element "//button[@onclick='handle_click()']"
-		Then I verify the number having xpath "//div[@id='pageNumbering']" searched with "budget"
-		And I verify the highlighted "Budget" text having css "span.hilitedTerm.rounded"
-		Then I click on "Search"
-		And I enter search text "budgetText" in textfield having xpath "//input[@name='term']"
-		Then I click on xpath element "//input[@name='searchType']"
-		Then I click on xpath element "//button[@onclick='handle_click()']"
-		Then I verify the number having xpath "//div[@id='pageNumbering']" searched with "budgetWithSubject"
-		And I verify the highlighted "Budget" text having css "span.hilitedTerm.rounded"
-		Then I click on xpath element "//img[@src='images/header-menuicon.svg']"
-		Then I click on xpath element "//a[@href='edit-correspondents']"
-		And I verify that I am on page <editCorrespondentsPage>
-		Then I edit the address book having id "text" 
-		Then I click on xpath element "//button[@type='submit']"
-		And I verify that I am on <browserTopPage>
-		Then I verify the updated profile text having css "div.profile-text"
-		Then I click on xpath element "//img[@src='images/header-menuicon.svg']"
-		Then I click on xpath element "//a[@href='edit-correspondents']"
-		Then I revert back the correspondent values in id "text"
-		Then I click on xpath element "//button[@type='submit']"
-		Then I verify the profile text having css "div.profile-text" has reverted
+
+		##############  search
+		Given I click on "Search"
+		And I enter "florida" into input field with name "term"
+		And I click on button "Search"
+		Then I check for > 400 messages on the page
+		And I check that "Florida" is highlighted
+		And I navigate back
+
+		Given I click on "Search"
+		And I enter "kidcare" into input field with name "term"
+		And I click on button "Search"
+		Then I check for > 20 messages on the page
+		And I check that "Kidcare" is highlighted
+		And I navigate back
+
+	  # check query generator
+		Given I click on "Search"
+		And I click on "Query Generator"
+		And I enter <searchParagraph> into input field with name "refText"
+		And I click on button "Search"
+		Then I verify that I am on page "http://localhost:9099/epadd/query-generator"
+		And I wait for 30 sec
+		Then I check for > 0 highlights on the page
+		And I check that "Latin American" is highlighted
+
+		# edit address book
+		And I find CSS element "#more-options" and click on it
+		And I wait for 1 sec
+		And I click on "Edit Correspondents"
+
+		Then I verify that I am on page "http://localhost:9099/epadd/edit-correspondents"
+		Given I add "Peter Chan" to the address book
+		And I click on "Save"
+		Then I verify that I am on page "http://localhost:9099/epadd/browse-top"
+		Then I verify that CSS element "div.profile-text" contains "Peter Chan"
+
+		#export from appraisal
 		Then I click on "Export"
-		Then I click on xpath element "//button[contains(.,'Export')]"
+		Then I click on button "Export"
 		And I enter <emailExportLocation> into input field with name "dir"
-		Then I click on xpath element "//button[contains(.,'Export')]"
+		Then I click on button "Export"
+
+		# delete the archive
 		Then I click on xpath element "//img[@src='images/header-menuicon.svg']"
 		Then I click on xpath element "//a[@id='settings']"
 		Then I click on xpath element "//button[@id='delete-archive']"
