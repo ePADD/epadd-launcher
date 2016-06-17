@@ -35,7 +35,7 @@ Feature: ePadd
 		And I wait for 2 sec
 		Then CSS element "span.field-name" should have value "All Correspondents"
 
-		Given I click on CSS element "td > a"
+		Given I find CSS element "td > a" and click on it
 		And I wait for 2 sec
 		Then some messages should be displayed in another tab
 
@@ -54,7 +54,7 @@ Feature: ePadd
 		And I wait for 2 sec
 		Then CSS element "span.field-name" should have value "Person entities"
 
-		Given I click on CSS element "td > span"
+		Given I find CSS element "td > span" and click on it
 		And I wait for 2 sec
 		Then some messages should be displayed in another tab
 
@@ -72,7 +72,7 @@ Feature: ePadd
 		And I wait for 2 sec
 		Then CSS element "span.field-name" should have value "Organisation entities"
 
-		Given I click on CSS element "td > span"
+		Given I find CSS element "td > span" and click on it
 		And I wait for 2 sec
 		Then some messages should be displayed in another tab
 
@@ -90,7 +90,7 @@ Feature: ePadd
 		And I wait for 2 sec
 		Then CSS element "span.field-name" should have value "Location entities"
 
-		Given I click on CSS element "td > span"
+		Given I find CSS element "td > span" and click on it
 		And I wait for 2 sec
 		Then some messages should be displayed in another tab
 
@@ -112,14 +112,14 @@ Feature: ePadd
 		Given I navigate back
 		And I click on "Document attachments"
 		Then CSS element "span.field-value" should contain "Document Attachments"
-		Given I click on CSS element "td > a"
+		Given I find CSS element "td > a" and click on it
 		Then some messages should be displayed in another tab
 		And I navigate back
 
 		# non-docs
 		Given I click on "Other attachments"
 		Then CSS element "span.field-value" should contain "Other Attachments"
-		Then I click on CSS element "td > a"
+		Given I find CSS element "td > a" and click on it
 		And some messages should be displayed in another tab
 		Then I navigate back
 
@@ -224,7 +224,7 @@ Feature: ePadd
 		And I enter <emailArchiveLocation> into input field with name "sourceDir"
 		Then I click on element having id "gobutton"
 		Then I wait for 5 sec
-		Then I click on CSS element "div.landing-img"
+		Given I find CSS element "div.landing-img" and click on it
 		Then I click on element having id "enter"
 		Then I click on xpath element "//a[contains(.,'Authorities')]"
 		Then I wait for 5 sec
