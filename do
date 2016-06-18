@@ -1,5 +1,5 @@
 #!/bin/bash -u -e
-source ~/.bashrc
+# source ~/.bashrc
 
 # build flattened jar
 mvn # build the launcher
