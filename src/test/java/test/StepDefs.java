@@ -54,9 +54,9 @@ public class StepDefs {
 		TimeUnit.SECONDS.sleep(time);
 	}
 
-	@Given("I enter (.*?) into input field with name \"(.*?)\"$")
+	@Given("^I enter (.*) into input field with name \"(.*?)\"$")
 	public void enterValueInInputField(String inputValue, String fieldName) throws InterruptedException {
-		inputValue = parseValue(inputValue);
+		inputValue = processValue(inputValue);
 		WebElement inputField = driver.findElement(By.name(fieldName));
 		inputField.sendKeys(inputValue);
 	}
@@ -94,7 +94,7 @@ public class StepDefs {
 
 	@Then("CSS element \"(.*)\" should have value (.*)$")
 	public void verifyEquals(String selector, String expectedValue) {
-		expectedValue = parseValue(expectedValue);
+		expectedValue = processValue(expectedValue);
 		String actualText = driver.findElement(By.cssSelector(selector)).getText();
 		if (!actualText.equals(expectedValue)) {
 			logger.warn ("ACTUAL text for CSS selector " + selector + ": " + actualText + " EXPECTED: " + expectedValue);
@@ -105,7 +105,7 @@ public class StepDefs {
 
 	@Then("CSS element \"([^\"]*)\" should contain (.*)$")
 	public void verifyContains(String selector, String expectedValue) {
-		expectedValue = parseValue(expectedValue);
+		expectedValue = processValue(expectedValue);
 		String actualText = driver.findElement(By.cssSelector(selector)).getText();
 		if (!actualText.contains(expectedValue)) {
 			logger.warn ("ACTUAL text for CSS selector " + selector + ": " + actualText + " EXPECTED TO CONTAIN: " + expectedValue);
@@ -147,28 +147,28 @@ public class StepDefs {
 
 	@Then("I verify that I am on page \"(.*?)\"$")
 	public void verifyURL(String expectedURL) {
-		expectedURL = parseValue(expectedURL);
+		expectedURL = processValue(expectedURL);
 		String currentURL = driver.getCurrentUrl();
 		hooks.verifyElement(currentURL, expectedURL);
 	}
 
-	// be careful linkText should not have single or double quotes
-	private void clickOnLinkContaining(String elementType, String linkText) {
-		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
-		List<WebElement> es = driver.findElements(By.xpath("//" + elementType + "[contains(text(), '" + linkText + "')]"));
-		for (WebElement e: es) {
-			// click on the first displayed element
-			if (e.isDisplayed()) {
-				e.click();
-				break;
-			}
-		}
-	}
 
 	@Given("I find CSS element \"(.*)\" and click on it$")
 	public void clickOn(String cssSelector) throws InterruptedException {
 		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
 		driver.findElement(By.cssSelector(cssSelector)).click();
+	}
+
+	@Then("I find CSS element \"(.*)\" and verify that it contains \"(.*)\"$")
+	public void verifyCSSContains(String cssSelector, String expectedText) throws InterruptedException {
+		cssSelector = processValue(cssSelector);
+		expectedText = processValue(expectedText);
+		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
+		String elementText = driver.findElement(By.cssSelector(cssSelector)).getText();
+		if (!elementText.contains(expectedText)) {
+			throw new RuntimeException("Expected CSS element " + cssSelector + " to contain " + expectedText + " but it has " + elementText);
+		}
+		logger.info("CSS element " + cssSelector + " has value " + elementText + " and contains " + expectedText);
 	}
 
 	// will click on the link with the exact linkText if available; if not, on a link containing linkText
@@ -179,18 +179,66 @@ public class StepDefs {
 	@Given("I click on (.*) *\"(.*?)\"$")
 	public void clickOn(String elementType, String linkText) throws InterruptedException {
 		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
+		linkText = processValue(linkText);
+		linkText = linkText.toLowerCase();
 		WebElement e = null;
+
 		// elementType is option, if it's present it is used in the xpath, otherwise * is used
 		if (elementType.length() == 0)
 			elementType = "*";
 
-		try { driver.findElement(By.xpath("//" + elementType + "[text() = '" + linkText + "']")); } catch (Exception e1)  { } // ignore the ex, we'll try to find a link containing it
+		// prefer to find an exact match first if possible
+		String xpath = "//*[translate(text(),  'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz') == '" + linkText + "')]";
+
+		try { e = driver.findElement(By.xpath(xpath)); } catch (Exception e1) { } // ignore the ex, we'll try to find a link containing it
+		if (e == null) {
+			try {
+				String xpath1 = "//*[contains(translate(text(),  'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '" + linkText + "')]";
+				e = driver.findElement(By.xpath(xpath1));
+			} catch (Exception e1) {
+			} // ignore the ex, we'll try to find a link containing it
+		}
+
 		if (e != null) {
 			e.click(); // seems to be no way of getting text of a link through CSS
+			logger.info ("Clicked on (" + elementType + ") " + linkText);
+			waitFor(1); // always wait for 1 sec after click
+		} else
+			throw new RuntimeException ("Unable to find an element to click on: (" + elementType + ") " + linkText);
+	}
+
+	@Then("^I wait for the page (.*?) to be displayed within (\\d+) seconds$")
+	public void waitForPageToLoad(String url, int time) throws Throwable {
+		url = processValue(url);
+		long startMillis = System.currentTimeMillis();
+		WebDriverWait wait = new WebDriverWait(driver, time);
+		try {
+			wait.until(ExpectedConditions.urlMatches(url));
+		} catch (org.openqa.selenium.TimeoutException e) {
+			throw new RuntimeException (url + " did not open in " + time + " seconds. Exception occurred: ", e);
 		}
-		else
-			clickOnLinkContaining(elementType, linkText);
-		waitFor(1);
+
+		logger.info ("Page " + url + " loaded in " + (System.currentTimeMillis() - startMillis) + "ms");
+	}
+
+	// waits for button containing the given buttonText to appear within time seconds
+	@Then("^I wait for button (.*?) to be displayed within (\\d+) seconds$")
+	public void waitForButton(String buttonText, int time) throws Throwable {
+		buttonText = processValue(buttonText);
+		
+		long startMillis = System.currentTimeMillis();
+		WebDriverWait wait = new WebDriverWait(driver, time);
+		try {
+			buttonText = buttonText.toLowerCase();
+			String xpath = "//*[contains(translate(text(),  'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '" + buttonText + "')]";
+
+			driver.findElement(By.xpath(xpath)).getText();
+			wait.until(ExpectedConditions.elementToBeClickable(By.xpath(xpath))); // case insensitive match! see
+		} catch (org.openqa.selenium.TimeoutException e) {
+			throw new RuntimeException ("Button text" + buttonText + " was not found in " + time + " seconds. Exception occured: ", e);
+		}
+
+		logger.info ("Button " + buttonText + " clickable in " + (System.currentTimeMillis() - startMillis) + "ms");
 	}
 
 	@Given("I find xpath element \"(.*)\" and click on it$")
@@ -330,7 +378,19 @@ public class StepDefs {
 	@Then("I add \"(.*)\" to the address book$")
 	public void editAddressBook(String newName) throws InterruptedException {
 		WebElement e = driver.findElement(By.cssSelector("#text"));
+		e.click();
+		// go to the top of the textbox
+		// on windows, we need home key, on mac, we need cmd-up.
+		// probably doesn't hurt to send both ?
+		// this is not working on chrome-mac currently!
 		e.sendKeys(Keys.HOME);
+		e.sendKeys(Keys.COMMAND, Keys.UP);
+		e.sendKeys(Keys.chord(Keys.COMMAND, Keys.ARROW_UP));
+		e.sendKeys(Keys.chord(Keys.COMMAND, Keys.ARROW_UP));
+		e.sendKeys(Keys.chord(Keys.META, Keys.UP));
+		e.sendKeys(Keys.chord(Keys.META, Keys.ARROW_UP));
+
+		// one line down, and type in the new name, followed by enter
 		e.sendKeys(Keys.DOWN);
 		e.sendKeys(newName); // add the new name as the first row
 		e.sendKeys(Keys.ENTER);
@@ -345,7 +405,7 @@ public class StepDefs {
 
 	@Then("I verify the folder (.*) does not exist$")
 	public void checkFolderDoesNotExist(String folderName) throws InterruptedException, IOException {
-		folderName = parseValue(folderName);
+		folderName = processValue(folderName);
 		if (new File(folderName).exists()) {
 			throw new RuntimeException ("Folder " + folderName + " is not expected to exist, but it does!");
 		}
@@ -354,7 +414,7 @@ public class StepDefs {
 
 	@Then("I verify the folder (.*) exists$")
 	public void checkFolderExists(String folderName) throws InterruptedException, IOException {
-		folderName = parseValue(folderName);
+		folderName = processValue(folderName);
 		if (!new File(folderName).exists()) {
 			throw new RuntimeException ("Folder " + folderName + " is expected to exist, but it does not!");
 		}
@@ -362,12 +422,6 @@ public class StepDefs {
 	}
 
 	/////////////////////// REVIEWED UPTIL HERE - SGH /////////////////////////////////////////////
-
-	@Then("I click on \"(.*?)\" button having css \"(.*?)\"$")
-	public void clickSelectAllFoldersButton(String buttonName, String buttonCSS) {
-		hooks.waitForElement(By.cssSelector(buttonCSS));
-		driver.findElement(By.cssSelector(buttonCSS)).click();
-	}
 
 	@Then("copy files$")
 	public void copyFiles() throws InterruptedException {
@@ -423,17 +477,6 @@ public class StepDefs {
 	}
 
 
-	@Then("^I wait for the page \"(.*?)\" to be displayed within \"(.*?)\" seconds$")
-	public void waitForPageToLoad(String url, int time) throws Throwable {
-		WebDriverWait wait = new WebDriverWait(driver, time);
-		Hooks hooks = new Hooks();
-		try {
-			wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//div/a[@href='correspondents']")));
-		} catch (org.openqa.selenium.TimeoutException e) {
-			logger.warn(hooks.getValue("browserTopPage") + " did not opened in " + time
-					+ " Seconds.Exception occured is: " + e);
-		}
-	}
 
 	@Then("^create folder$")
 	public void createFolder() throws Throwable {
@@ -577,8 +620,7 @@ public class StepDefs {
 	}
 
 	// if the value is <abc> then we read the value of property abc in the hook. otherwise we use it as is.
-	public String parseValue(String s) {
-		Hooks hooks = new Hooks();
+	public String processValue(String s) {
 		if (s == null)
 			return null;
 		if (s.startsWith("<") && s.endsWith(">"))

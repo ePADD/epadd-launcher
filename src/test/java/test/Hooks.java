@@ -1,11 +1,7 @@
 package test;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.util.Properties;
-
+import cucumber.api.java.After;
+import cucumber.api.java.Before;
 import org.apache.log4j.Logger;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -16,8 +12,11 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.testng.Assert;
 
-import cucumber.api.java.After;
-import cucumber.api.java.Before;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.util.Properties;
 
 public class Hooks {
 	public static WebDriver driver;
@@ -32,6 +31,9 @@ public class Hooks {
 	 */
 	public void openBrowser() throws MalformedURLException {
 		try {
+			String consoleOutputFile = this.getValue("browserConsoleOutputFile");
+			System.setProperty("webdriver.log.file", consoleOutputFile + "-" + this.getValue("browser") + ".txt");
+
 			if (this.getValue("browser").equalsIgnoreCase("firefox")) {
 				driver = new FirefoxDriver();
 			} else if (this.getValue("browser").equalsIgnoreCase("chrome")) {
