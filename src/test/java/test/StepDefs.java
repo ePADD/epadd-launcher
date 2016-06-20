@@ -146,7 +146,7 @@ public class StepDefs {
 	}
 
 	@Then("I verify that I am on page \"(.*?)\"$")
-	public void verifyLexiconURL(String expectedURL) {
+	public void verifyURL(String expectedURL) {
 		expectedURL = parseValue(expectedURL);
 		String currentURL = driver.getCurrentUrl();
 		hooks.verifyElement(currentURL, expectedURL);
@@ -193,22 +193,24 @@ public class StepDefs {
 		waitFor(1);
 	}
 
-	@Then("I click on xpath element \"(.*?)\"$")
+	@Given("I find xpath element \"(.*)\" and click on it$")
 	public void clickOnElementHavingXpath(String xpathLocator) {
 		hooks.waitForElement(By.xpath(xpathLocator));
 		driver.findElement(By.xpath(xpathLocator)).click();
 	}
 
 	private int nMessagesOnBrowsePage() {
-		String num = driver.findElement(By.xpath("//div[@id='pageNumbering']")).getText();
+		String num = driver.findElement(By.id("pageNumbering")).getText();
+		// num will be "x/y", e.g. something like 123/312. Extract the "312" part of it
 		String totalNumberOfEmails = num.substring(num.indexOf("/")).replace("/", "");
 		int n = -1;
 		try { n = Integer.parseInt(totalNumberOfEmails); } catch (Exception e) { }
 		return n;
 	}
 
-	@Then("I check for (.*) (\\d*) messages on the page")
+	@Then("I check for ([^ ]*) *(\\d*) messages on the page")
 	public void checkMessagesOnBrowsePage(String relation, int nExpectedMessages) {
+		relation = relation.trim();
 		int nActualMessages = nMessagesOnBrowsePage();
 		logger.info ("checking for " + relation + " " + nExpectedMessages + " messages, got " + nActualMessages);
 		if ("".equals(relation) && !(nActualMessages == nExpectedMessages))
@@ -221,7 +223,9 @@ public class StepDefs {
 
 	@Then("I check for (.*) (\\d*) highlights on the page")
 	public void checkHighlights(String relation, int nExpectedHighlights) {
-		int nHighlights = driver.findElements(By.cssSelector(".muse-highlight")).size();
+		Collection<WebElement> highlights = driver.findElements(By.cssSelector(".muse-highlight"));
+		highlights.addAll(driver.findElements(By.cssSelector(".hilitedTerm"))); // could be either of these classes used for highlighting
+		int nHighlights = highlights.size();
 
 		logger.info ("checking for " + relation + " " + nExpectedHighlights + " messages, got " + nHighlights);
 		if ("".equals(relation) && !(nHighlights == nExpectedHighlights))
@@ -241,8 +245,9 @@ public class StepDefs {
 				logger.info ("highlighted term " + termToBeHighighted + " found");
 				return;
 			}
-		logger.info ("highlighted term " + termToBeHighighted + " not found!");
-		return;
+		String message = "highlighted term " + termToBeHighighted + " not found!";
+		logger.warn (message);
+		throw new RuntimeException(message);
 	}
 
 		// check for some messages in another tab, then close it
@@ -329,6 +334,31 @@ public class StepDefs {
 		e.sendKeys(Keys.DOWN);
 		e.sendKeys(newName); // add the new name as the first row
 		e.sendKeys(Keys.ENTER);
+	}
+
+	@Then("I confirm the alert$")
+	public void handleAlert() throws InterruptedException {
+		Thread.sleep(5000);
+		Alert alert = driver.switchTo().alert();
+		alert.accept();
+	}
+
+	@Then("I verify the folder (.*) does not exist$")
+	public void checkFolderDoesNotExist(String folderName) throws InterruptedException, IOException {
+		folderName = parseValue(folderName);
+		if (new File(folderName).exists()) {
+			throw new RuntimeException ("Folder " + folderName + " is not expected to exist, but it does!");
+		}
+		logger.info ("Good, folder " + folderName + " does not exist");
+	}
+
+	@Then("I verify the folder (.*) exists$")
+	public void checkFolderExists(String folderName) throws InterruptedException, IOException {
+		folderName = parseValue(folderName);
+		if (!new File(folderName).exists()) {
+			throw new RuntimeException ("Folder " + folderName + " is expected to exist, but it does not!");
+		}
+		logger.info ("Good, folder " + folderName + " exists");
 	}
 
 	/////////////////////// REVIEWED UPTIL HERE - SGH /////////////////////////////////////////////
@@ -481,43 +511,6 @@ public class StepDefs {
 		}
 		driver.switchTo().window(parentWindow);
 	}
-
-
-	@Then("I handle the alert$")
-	public void handleAlert() throws InterruptedException {
-		Thread.sleep(5000);
-		Alert alert = driver.switchTo().alert();
-		alert.accept();
-	}
-
-	@Then("I verify the session folder under \"(.*?)\" folder$")
-	public void checkFolderExistence(String folderName) throws InterruptedException, IOException {
-		this.wait(5);
-		Hooks hooks = new Hooks();
-		File file = null;
-
-		if (opsystem.contains("Windows")) {
-			file = new File(hooks.getValue("sessionFolder"));
-		} else if (opsystem.contains("Linux")) {
-			file = new File(hooks.getValue("sessionFolder"));
-		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-			file = new File(hooks.getValue("sessionFolder"));
-		}
-
-		if (file.exists()) {
-
-			if (opsystem.contains("Windows")) {
-				FileUtils.deleteDirectory(new File(hooks.getValue("sessionFolder")));
-			} else if (opsystem.contains("Linux")) {
-				FileUtils.deleteDirectory(new File(hooks.getValue("sessionFolder")));
-			} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-				FileUtils.deleteDirectory(new File(hooks.getValue("sessionFolder")));
-			}
-		}
-		this.wait(5);
-	}
-
-
 
 	@Then("I upload the image having id \"(.*?)\"$")
 	public void uploadImage(String imageLocator) throws InterruptedException {

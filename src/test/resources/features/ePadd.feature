@@ -1,14 +1,15 @@
 Feature: ePadd
 	@ePADD
 	Scenario Outline: ePadd (Appraisal, Processing, Discovery Module)
-		
-        Given I open ePADD
+
+		Given I open ePADD
         And I navigate to "http://localhost:9099/epadd/browse-top"
 		And I wait for 20 sec
 
-	    # upload images
+		Then I verify the folder <appraisalSessionsDir> exists
+
+		# upload images
 	    And I find CSS element "#more-options" and click on it
-		And I wait for 1 sec
 		And I click on "Set Images"
 
 		And I enter <profilePhoto> into input field with name "profilePhoto"
@@ -21,7 +22,6 @@ Feature: ePadd
 		Then I take full page screenshot called "browse-top"
 
 		# now check the # of attachments
-		Given I wait for 5 sec
 		Then CSS element "#nImageAttachments" should have value 136
 		And CSS element "#nDocAttachments" should have value 289
 		And CSS element "#nOtherAttachments" should have value 70
@@ -32,21 +32,16 @@ Feature: ePadd
 		Given I click on "Browse"
 
 		And I click on "Correspondents"
-		And I wait for 2 sec
 		Then CSS element "span.field-name" should have value "All Correspondents"
 
 		Given I find CSS element "td > a" and click on it
-		And I wait for 2 sec
 		Then some messages should be displayed in another tab
 
-		Given I wait for 2 sec
 		Then I click on "Go To Graph View"
-		And I wait for 2 sec
 		Then CSS element "span.field-name" should have value "Top correspondents graph"
 		Then I take full page screenshot called "correspondents-graph"
 
 		Then I click on "Go To Table View"
-		And I wait for 2 sec
 
 		# persons
 		Given I click on "Browse"
@@ -159,22 +154,22 @@ Feature: ePadd
 		And I close tab
 
 		# check sensitive messages
-		Then I click on "Sensitive messages"
-		And I switch to Job page and verify highlighted text having css "span.hilitedTerm.rounded" and email number "//div[@id='pageNumbering']"
-		Then I click on "Browse"
-		Then I click on xpath element "//div/a[@href='browse?sensitive=true']"
-		And some messages should be displayed in another tab
-		Then I navigate back
+		Given I click on "Sensitive messages"
+		# we should see 8 messages, with the first one having an SSN
+		And I check for > 7 messages on the page
+		And I check for > 0 highlights on the page
+	 	Given I navigate back
 
 		##############  search
-		Given I click on "Search"
+		And I click on "Search"
 		And I enter "florida" into input field with name "term"
 		And I click on button "Search"
 		Then I check for > 400 messages on the page
-		And I check that "Florida" is highlighted
-		And I navigate back
+		# we can't check that Florida is highlighted because the first hit is inside an attachment!
+		# And I check that "Florida" is highlighted
+		Given I navigate back
 
-		Given I click on "Search"
+		And I click on "Search"
 		And I enter "kidcare" into input field with name "term"
 		And I click on button "Search"
 		Then I check for > 20 messages on the page
@@ -187,13 +182,13 @@ Feature: ePadd
 		And I enter <searchParagraph> into input field with name "refText"
 		And I click on button "Search"
 		Then I verify that I am on page "http://localhost:9099/epadd/query-generator"
+		# this takes a while, so give it some time
 		And I wait for 30 sec
-		Then I check for > 0 highlights on the page
+	 	Then I check for > 0 highlights on the page
 		And I check that "Latin American" is highlighted
 
 		# edit address book
 		And I find CSS element "#more-options" and click on it
-		And I wait for 1 sec
 		And I click on "Edit Correspondents"
 
 		Then I verify that I am on page "http://localhost:9099/epadd/edit-correspondents"
@@ -202,25 +197,32 @@ Feature: ePadd
 		Then I verify that I am on page "http://localhost:9099/epadd/browse-top"
 		Then I verify that CSS element "div.profile-text" contains "Peter Chan"
 
+		# TODO: should also click on the other links on the export page
+
 		#export from appraisal
 		Then I click on "Export"
 		Then I click on button "Export"
 		And I enter <emailExportLocation> into input field with name "dir"
 		Then I click on button "Export"
 
-		# delete the archive
-		Then I click on xpath element "//img[@src='images/header-menuicon.svg']"
-		Then I click on xpath element "//a[@id='settings']"
-		Then I click on xpath element "//button[@id='delete-archive']"
-		Then I handle the alert
-		Then I verify the session folder under "epadd-appraisal/user" folder
-		And I verify the "Browse" link existence 
-		And I navigate to <epaddIndexURL>
-		And I verify the name "name" field on email source page 
-		Then I click on xpath element "//img[@src='images/header-menuicon.svg']"
-		Then I click on xpath element "//a[@id='settings']"
+		# delete the archive and confirm the dir got deleted
+		And I find CSS element "#more-options" and click on it
+		Then I click on "Settings"
+		Then I click on "Delete Archive"
+		Then I confirm the alert
+
+		Then I verify the folder <appraisalSessionsDir> does not exist
+
+		# after deletion, going to indexpage should redirect us to email-sources
+		Given I navigate to <epaddIndexURL>
+		Then I verify that I am on page "http://localhost:9099/epadd/email-sources"
+
+		And I find CSS element "#more-options" and click on it
+		Then I click on "Settings"
+
 		Then I select "PROCESSING" option by text from dropdown having id "mode-select"
-		Then I click on xpath element "//a[@href='import']"
+		Then I click on "Import"
+
 		And I enter <emailArchiveLocation> into input field with name "sourceDir"
 		Then I click on element having id "gobutton"
 		Then I wait for 5 sec
@@ -277,6 +279,3 @@ Feature: ePadd
 		Examples:
 		|emailSourceURL  |achieverName  |primaryEmailAddress  |emailFolderLocation  |emailExportLocation  |emailArchiveLocation  |emailExportSplitLocation  |LexiconURL  |LexiconEditURL  |queryGeneratorPage  |editCorrespondentsPage |browserTopPage  |epaddIndexURL  |
 		|"emailSourceURL"|"achieverName"|"primaryEmailAddress"|"emailFolderLocation"|"emailExportLocation"|"emailArchiveLocation"|"emailExportSplitLocation"|"LexiconURL"|"LexiconEditURL"|"queryGeneratorPage"|"editCorrespondentsPage"|"browserTopPage"|"epaddIndexURL"|
-		
-		
-	
