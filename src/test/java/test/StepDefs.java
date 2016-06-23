@@ -57,8 +57,12 @@ public class StepDefs {
 	@Given("^I enter (.*) into input field with name \"(.*?)\"$")
 	public void enterValueInInputField(String inputValue, String fieldName) throws InterruptedException {
 		inputValue = processValue(inputValue);
-		WebElement inputField = driver.findElement(By.name(fieldName));
-		inputField.sendKeys(inputValue);
+		try {
+			WebElement inputField = driver.findElement(By.name(fieldName));
+			inputField.sendKeys(inputValue);
+		} catch (Exception e) {
+			throw new RuntimeException ("Unable to find an input field to enter value in: (" + inputValue + ") " + "field: " + fieldName + " page: " + driver.getCurrentUrl());
+		}
 	}
 
 	@Then("I navigate back$")
@@ -172,39 +176,57 @@ public class StepDefs {
 	}
 
 	// will click on the link with the exact linkText if available; if not, on a link containing linkText
+	// linkText is case insensitive
 	// can use as:
-	// I click on "Search"
+	// I click on "Search" --> searches button, link, td tags with this text (or their sub-elements), in that order
 	// or
 	// I click on button "Search"
 	@Given("I click on (.*) *\"(.*?)\"$")
 	public void clickOn(String elementType, String linkText) throws InterruptedException {
-		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
+		elementType = elementType.trim(); // required because linkText might come as "button " due to regex matching above
 		linkText = processValue(linkText);
 		linkText = linkText.toLowerCase();
 		WebElement e = null;
 
-		// elementType is option, if it's present it is used in the xpath, otherwise * is used
-		if (elementType.length() == 0)
-			elementType = "*";
+		// we'll look for linkText in a few specific tags, in this defined order
+		// sometimes the text we're looking for is under a further element, like <a><p>...</p></a>
+		String searchOrderEType[] = (elementType.length() != 0) ? new String[]{elementType, elementType + "//*"} : new String[]{"button", "a", "td", "button//*", "a//*", "td//*"};
 
 		// prefer to find an exact match first if possible
-		String xpath = "//*[translate(text(),  'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz') == '" + linkText + "')]";
-
-		try { e = driver.findElement(By.xpath(xpath)); } catch (Exception e1) { } // ignore the ex, we'll try to find a link containing it
-		if (e == null) {
-			try {
-				String xpath1 = "//*[contains(translate(text(),  'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '" + linkText + "')]";
-				e = driver.findElement(By.xpath(xpath1));
-			} catch (Exception e1) {
-			} // ignore the ex, we'll try to find a link containing it
+		// go in order of searchOrderEtype
+		// be careful to ignore invisible elements
+		// be case-insensitive
+		for (String s: searchOrderEType) {
+			String xpath = "//" + s + "[translate(text(),  'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz') = '" + linkText + "')]";
+			try { e = driver.findElement(By.xpath(xpath)); } catch (Exception e1) { } // ignore the ex, we'll try to find a link containing it
+			if (e != null && !e.isDisplayed())
+				e = null; // doesn't count if the element is not visible
+			if (e != null)
+				break;
 		}
 
+		// no exact match? try to find a contained match, again in order of searchOrderEtype
+		if (e == null) {
+			for (String s: searchOrderEType) {
+				String xpath = "//" + s + "[contains(translate(text(),  'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '" + linkText + "')]";
+				try { e = driver.findElement(By.xpath(xpath)); } catch (Exception e1) { } // ignore the ex, we'll try to find a link containing it
+				if (e != null && !e.isDisplayed())
+					e = null; // doesn't count if the element is not visible
+				if (e != null)
+					break;
+			}
+		}
+
+		// ok, we we have an element to click on?
 		if (e != null) {
+			// color the border red of the selected element to make it easier to understand what is happening
+			((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true); arguments[0].style.border = '2px solid red';", e);
+			logger.info ("Clicking on (" + e.getTagName() + ") containing " + linkText);
+			waitFor(1);
 			e.click(); // seems to be no way of getting text of a link through CSS
-			logger.info ("Clicked on (" + elementType + ") " + linkText);
 			waitFor(1); // always wait for 1 sec after click
 		} else
-			throw new RuntimeException ("Unable to find an element to click on: (" + elementType + ") " + linkText);
+			throw new RuntimeException ("Unable to find an element to click on: (" + elementType + ") " + linkText + " page: " + driver.getCurrentUrl());
 	}
 
 	@Then("^I wait for the page (.*?) to be displayed within (\\d+) seconds$")
@@ -256,7 +278,7 @@ public class StepDefs {
 		return n;
 	}
 
-	@Then("I check for ([^ ]*) *(\\d*) messages on the page")
+	@Then("^I check for ([<>]*) *(\\d+) messages on the page$")
 	public void checkMessagesOnBrowsePage(String relation, int nExpectedMessages) {
 		relation = relation.trim();
 		int nActualMessages = nMessagesOnBrowsePage();
@@ -269,7 +291,7 @@ public class StepDefs {
 			throw new RuntimeException("Expected <" + nExpectedMessages + " found " + nActualMessages);
 	}
 
-	@Then("I check for (.*) (\\d*) highlights on the page")
+	@Then("I check for ([<>]*) *(\\d+) highlights on the page")
 	public void checkHighlights(String relation, int nExpectedHighlights) {
 		Collection<WebElement> highlights = driver.findElements(By.cssSelector(".muse-highlight"));
 		highlights.addAll(driver.findElements(By.cssSelector(".hilitedTerm"))); // could be either of these classes used for highlighting
@@ -623,6 +645,7 @@ public class StepDefs {
 	public String processValue(String s) {
 		if (s == null)
 			return null;
+		s = s.trim(); // strip spaces before and after
 		if (s.startsWith("<") && s.endsWith(">"))
 			s = hooks.getValue(s.substring(1, s.length()-1));
 		if (s.startsWith("\"") && s.endsWith("\"") && s.length() >= 2) // strip quotes -- if "abc", simply make it abc

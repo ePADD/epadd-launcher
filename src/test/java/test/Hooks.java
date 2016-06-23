@@ -1,6 +1,5 @@
 package test;
 
-import cucumber.api.java.After;
 import cucumber.api.java.Before;
 import org.apache.log4j.Logger;
 import org.openqa.selenium.By;
@@ -53,7 +52,8 @@ public class Hooks {
 		}
 	}
 
-	@After
+	// temporarily disable quits
+//	@  After
 	public void closeBrowser() {
 		try {
 			driver.quit();

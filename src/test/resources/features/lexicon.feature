@@ -2,22 +2,36 @@ Feature: ePadd
 	@ePADD
 	Scenario Outline: ePadd (Appraisal, Processing, Discovery Module)
 		# expects epadd to be already running
-	 # do the indexing
-		Given I navigate to "http://localhost:9099/epadd/email-sources"
-		And I enter "Jeb Bush into input field with name "name"
-		And I enter jeb@jeb.org into input field with name "alternateEmailAddrs"
-		And I enter <emailFolderLocation> into input field with name "mboxDir2"
-		And I click on "Continue"
-		Then I wait for button "Select all folders" to be displayed within 20 seconds
-		Then I click on "Select all folders"
-		Then I click on "Continue"
+		Given I navigate to "http://localhost:9099/epadd/browse-top"
 
-		Then I wait for the page <browserTopPage> to be displayed within 240 seconds
+	 ##############  search
+#		And I navigate to "http://localhost:9099/epadd/search-query"
+#		And I enter "florida" into input field with name "term"
+#		And I click on button "Search"
+#		And I wait for 10 sec
+#		Then I check for > 400 messages on the page
+#		Then I navigate back
+#	 # we can't check that Florida is highlighted because the first hit is inside an attachment!
+#	 # And I check that "Florida" is highlighted
+#
+#		And I navigate to "http://localhost:9099/epadd/search-query"
+#		And I enter "kidcare" into input field with name "term"
+#		And I click on button "Search"
+#		Then I check for > 20 messages on the page
+#		And I wait for 10 sec
+#		And I check that "Kidcare" is highlighted
+#		Then I navigate back
 
-		And I navigate to "http://localhost:9099/epadd/browse-top"
-		And I wait for 20 sec
-
-		Then I verify the folder <appraisalSessionsDir> exists
+	  # check query generator
+		And I navigate to "http://localhost:9099/epadd/search-query"
+		And I click on "Query Generator"
+		And I enter <searchParagraph> into input field with name "refText"
+		And I click on button "Search"
+		Then I verify that I am on page "http://localhost:9099/epadd/query-generator"
+	 # this takes a while, so give it some time
+		And I wait for 30 sec
+		Then I check for > 0 highlights on the page
+		And I check that "Latin American" is highlighted
 		Examples:
 		|emailSourceURL  |
 		|"emailSourceURL"|
