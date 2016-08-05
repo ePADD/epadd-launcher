@@ -100,11 +100,13 @@ public class StepDefs {
 	public void verifyEquals(String selector, String expectedValue) {
 		expectedValue = processValue(expectedValue);
 		String actualText = driver.findElement(By.cssSelector(selector)).getText();
+	    
 		if (!actualText.equals(expectedValue)) {
 			logger.warn ("ACTUAL text for CSS selector " + selector + ": " + actualText + " EXPECTED: " + expectedValue);
 			throw new RuntimeException();
 		}
 		logger.info ("Found expected text for CSS selector " + selector + ": " + actualText);
+		
 	}
 
 	@Then("CSS element \"([^\"]*)\" should contain (.*)$")
@@ -190,7 +192,7 @@ public class StepDefs {
 
 		// we'll look for linkText in a few specific tags, in this defined order
 		// sometimes the text we're looking for is under a further element, like <a><p>...</p></a>
-		String searchOrderEType[] = (elementType.length() != 0) ? new String[]{elementType, elementType + "//*"} : new String[]{"button", "a", "td", "button//*", "a//*", "td//*"};
+		String searchOrderEType[] = (elementType.length() != 0) ? new String[]{elementType, elementType + "//*"} : new String[]{"button","div//button","div//*", "a", "td", "button//*","a//*", "td//*","span"};
 
 		// prefer to find an exact match first if possible
 		// go in order of searchOrderEtype
@@ -222,9 +224,9 @@ public class StepDefs {
 			// color the border red of the selected element to make it easier to understand what is happening
 			((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true); arguments[0].style.border = '2px solid red';", e);
 			logger.info ("Clicking on (" + e.getTagName() + ") containing " + linkText);
-			waitFor(1);
+			waitFor(5);
 			e.click(); // seems to be no way of getting text of a link through CSS
-			waitFor(1); // always wait for 1 sec after click
+			waitFor(5); // always wait for 1 sec after click
 		} else
 			throw new RuntimeException ("Unable to find an element to click on: (" + elementType + ") " + linkText + " page: " + driver.getCurrentUrl());
 	}
@@ -265,12 +267,13 @@ public class StepDefs {
 
 	@Given("I find xpath element \"(.*)\" and click on it$")
 	public void clickOnElementHavingXpath(String xpathLocator) {
-		hooks.waitForElement(By.xpath(xpathLocator));
+		//hooks.waitForElement(By.xpath(xpathLocator));
 		driver.findElement(By.xpath(xpathLocator)).click();
 	}
 
 	private int nMessagesOnBrowsePage() {
 		String num = driver.findElement(By.id("pageNumbering")).getText();
+		System.out.println("$$$$$$$$$$$$$$$$$$$$$"+num);
 		// num will be "x/y", e.g. something like 123/312. Extract the "312" part of it
 		String totalNumberOfEmails = num.substring(num.indexOf("/")).replace("/", "");
 		int n = -1;
@@ -282,6 +285,7 @@ public class StepDefs {
 	public void checkMessagesOnBrowsePage(String relation, int nExpectedMessages) {
 		relation = relation.trim();
 		int nActualMessages = nMessagesOnBrowsePage();
+		System.out.println("$$$$$$$$$$$$$$"+nActualMessages);
 		logger.info ("checking for " + relation + " " + nExpectedMessages + " messages, got " + nActualMessages);
 		if ("".equals(relation) && !(nActualMessages == nExpectedMessages))
 			throw new RuntimeException("Expected " + nExpectedMessages + " found " + nActualMessages);
@@ -385,7 +389,7 @@ public class StepDefs {
 
 		if (!e.getAttribute("class").contains("flag-enabled")) {
 			driver.findElement(By.id("doNotTransfer")).click();
-			wait(1);
+			waitFor(1);
 		}
 
 		driver.findElement(By.id("applyToAll")).click();

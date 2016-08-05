@@ -100,18 +100,18 @@ public class Hooks {
 		}
 	}
 
-	public void waitForWebElement(By by) {
+	/*public void waitForWebElement(By by) {
 		WebDriverWait wait = new WebDriverWait(driver, 40);
 		try {
 			wait.until(ExpectedConditions.visibilityOfAllElementsLocatedBy(by));
 		} catch (Exception e) {
 			logger.info("FAILED: " + by + "\", is not present \"");
 		}
-	}
+	}*/
 	
-	protected void verifyFloridaNumber(String actualValue, String expectedValue)
+	/*protected void verifyFloridaNumber(String actualValue, String expectedValue)
 	{
 		Assert.assertTrue(Integer.parseInt(actualValue)>Integer.parseInt(expectedValue));
 		
-	}
+	}*/
 }
