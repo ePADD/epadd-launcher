@@ -585,8 +585,8 @@ public class TomcatMain {
 	    tellUser (splash, "Setting up logging...");
 	    setupLogging();
 	    basicSetup(args);
-	    BASE_URL = "http://localhost:" + PORT + "/" + WEBAPP_NAME;
-	    MUSE_CHECK_URL = BASE_URL + "/js/epadd.js"; // for quick check of existing muse or successful start up. BASE_URL may take some time to run and may not always be available now that we set dirAllowed to false and public mode does not serve /muse.
+	    BASE_URL = "http://localhost:" + PORT + "/" + WEBAPP_NAME + "/";
+	    MUSE_CHECK_URL = BASE_URL + "js/epadd.js"; // for quick check of existing muse or successful start up. BASE_URL may take some time to run and may not always be available now that we set dirAllowed to false and public mode does not serve /muse.
 
 	    tellUser (splash, "Log file: " + debugFile + "***\n");
 
