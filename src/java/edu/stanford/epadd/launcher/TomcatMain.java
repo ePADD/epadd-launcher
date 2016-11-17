@@ -88,6 +88,7 @@ class Splash extends Frame implements ActionListener {
 
 /** main launcher class for tomcat with the epadd.war webapp */
 public class TomcatMain {
+	public static String EPADD_PROPS_FILE = System.getProperty("user.home") + File.separator + "epadd.properties";
 
 	static PrintStream savedSystemOut, savedSystemErr;
 	static PrintStream out = System.out, err = System.err;
@@ -329,12 +330,39 @@ public class TomcatMain {
 	private static void setupLogging()
 	{
 		// do this right up front, before JSPHelper is touched (which will call Log4JUtils.initialize())
-		String dirName = "epadd-settings"; // Warning: should be the same as in epaddInitializer
-		String settingsDir = System.getProperty("user.home") + File.separatorChar + "epadd-settings";
-		String logFile = settingsDir + File.separatorChar + "epadd.log";
-		String launcherLogFile = settingsDir + File.separatorChar + "epadd-launcher.log";
-		String launcherLogFileErr = settingsDir + File.separatorChar + "epadd-launcher.err.log";
-		new File(settingsDir).mkdirs();
+
+		// compute settings_DIR, which is also used as logging_dir
+		// Important: this logic should be the same as in EpaddInitializer inside the webapp (which calls muse/Config.java)
+		String SETTINGS_DIR;
+		{
+			String DEFAULT_SETTINGS_DIR = System.getProperty("user.home") + File.separator + "epadd-settings";
+			Properties props = new Properties();
+
+			File f = new File(EPADD_PROPS_FILE);
+			if (f.exists() && f.canRead()) {
+				out.println("Reading configuration from: " + EPADD_PROPS_FILE);
+				try {
+					InputStream is = new FileInputStream(EPADD_PROPS_FILE);
+					props.load(is);
+				} catch (Exception e) {
+					err.println("Error reading epadd properties file " + EPADD_PROPS_FILE + " " + e);
+				}
+			} else {
+				err.println("ePADD properties file " + EPADD_PROPS_FILE + " does not exist or is not readable");
+			}
+
+			// set up settings_dir
+			SETTINGS_DIR = System.getProperty("epadd.settings.dir");
+			if (SETTINGS_DIR == null || SETTINGS_DIR.length() == 0)
+				SETTINGS_DIR = props.getProperty("epadd.settings.dir");
+			if (SETTINGS_DIR == null || SETTINGS_DIR.length() == 0)
+				SETTINGS_DIR = DEFAULT_SETTINGS_DIR;
+		}
+
+		String logFile = SETTINGS_DIR + File.separatorChar + "epadd.log";
+		String launcherLogFile = SETTINGS_DIR + File.separatorChar + "epadd-launcher.log";
+		String launcherLogFileErr = SETTINGS_DIR + File.separatorChar + "epadd-launcher.err.log";
+		new File(SETTINGS_DIR).mkdirs();
 
 		System.setProperty("muse.log", logFile);
 
