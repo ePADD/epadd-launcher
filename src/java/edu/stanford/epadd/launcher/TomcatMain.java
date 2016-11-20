@@ -34,7 +34,6 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.List;
-import java.util.Timer;
 
 class Splash extends Frame implements ActionListener {
 	Graphics2D g;
@@ -95,89 +94,57 @@ public class TomcatMain {
 	static BrowserLauncher launcher;
 	static String preferredBrowser;
 	static Tomcat server;
-	static String BASE_URL, MUSE_CHECK_URL, WEBAPP_NAME = "/epadd";
+	static String BASE_URL, APP_CHECK_URL, WEBAPP_NAME = "epadd";
 	static boolean debug = false;
-	static String debugFile;
+	//static String debugFile;
 	static final int TIMEOUT_SECS = 60;
-	static Context epaddWebapp;
-	
+	static Context EPADD_WEBAPP; // this will be used by shutdown thread to find sessions and close them down cleanly
+
+	static String SETTINGS_DIR = null;
+	static boolean IS_DISCOVERY_MODE = false;
+
 	private static final int MB = 1024 * 1024;
 	final static int DEFAULT_PORT = 9099;
 	static int PORT = DEFAULT_PORT;
+	private static java.awt.Desktop desktop;
+	private static boolean browserOpen = true;
+	private static String startPage = null;
+    private static Splash SPLASH;
 
-	private static void tellUser (Splash splash, String s) { if (splash != null) splash.setSplashText(s); }
+	static { if (System.getProperty("nobrowseropen") == null) { desktop = java.awt.Desktop.getDesktop(); } } // necessary to do this early, causes problems with java 7 (both for taskbar icon and launching a browser) if you try and do it later
 
-	// reads the warName from the classpath, copies it to a tmpdir, and deploys the war at the given path
-	private static Context deployWarAt(String warName, String path) throws IOException, ServletException
+	private static void tellUser (String s) { out.println (s); if (SPLASH != null) SPLASH.setSplashText(s); }
+
+	// reads the resourceName from the classpath, copies it to rootDir. clears it if it already existed
+	private static void copyResource(String resourceName, String rootDir) throws IOException, ServletException
 	{
-		// extract the war to tmpdir
-		final URL warUrl = TomcatMain.class.getClassLoader().getResource(warName);
-		if (warUrl == null)
-		{
-			out.println ("Sorry! Unable to locate file on classpath: " + warName);
-			return null;
-		}
-		InputStream is = warUrl.openStream();
-		String tmp = System.getProperty("java.io.tmpdir");
-		String file = tmp + File.separatorChar + warName;
-		out.println ("Extracting: " + warName + " to " + file + " is=" + is);
+        String file = rootDir + File.separatorChar + resourceName;
 
-		File existingFile = new File(file);
-		if (existingFile.exists())
-			out.println ("Existing file: " + file);
-
-//		if (new File(file).exists())
-		copy_stream_to_file(is, file);
-
-		File newFile = new File(file);
-		if (!newFile.exists()) {
-			out.println ("Sorry! Unable to copy war file: " + file);
-			return null;			
-		}
-
-		out.println ("Copied epadd war file with size " + newFile.length() + " bytes to " + newFile.getAbsolutePath());
-
-		// clear the tomcat workdir which unfortunately caches jsp-generated java files sometimes and leads to terribly insiduous bugs.
-		String workDir = tmp + File.separator + "epadd" + File.separator + "working";
-		File workFile = new File(workDir); 
-		if (workFile.exists()) {
-			out.println ("Tomcat work dir exists: " + workDir); 
-			boolean success = deleteDir (new File(workDir));
-			if (!success) 
-				out.println ("Warning: unable to clear tomcat work dir " + workDir);
-			else
-				out.println ("Cool... able to clear tomcat work dir " + workDir);
-		} 
-		else 
-			out.println ("Good, tomcat work dir does not already exist: " + workDir); 
-		
-		return server.addWebapp("/epadd", new File(file).getAbsolutePath());
-	}
-
-        // Deletes all files and subdirectories under dir.
-        // Returns true if all deletions were successful.
-        // If a deletion fails, the method stops attempting to delete and returns
-        // false.
-        public static boolean deleteDir(File f)
+        // extract the war to tmpdir
         {
-                if (f.isDirectory())
-                {
-                        String[] children = f.list();
-                        for (int i = 0; i < children.length; i++)
-                        {
-                                boolean success = deleteDir(new File(f, children[i]));
-                                if (!success)
-                                {
-                                        System.out.println("warning: failed to delete file " + f);
-                                        return false;
-                                }
-                        }
-                }
+            final URL warUrl = TomcatMain.class.getClassLoader().getResource(resourceName);
+            if (warUrl == null) {
+                out.println("Sorry! Unable to locate file on classpath: " + resourceName);
+                throw new RuntimeException ("Sorry! Unable to locate file on classpath: " + resourceName);
+            }
+            InputStream is = warUrl.openStream();
+            out.println("Extracting: " + resourceName + " to " + file + " is=" + is);
 
-                // The directory is now empty so delete it
-                return f.delete();
+            File existingFile = new File(file);
+            if (existingFile.exists())
+                out.println("Existing file: " + file);
+
+            copy_stream_to_file(is, file);
+
+            File newFile = new File(file);
+            if (!newFile.exists()) {
+                out.println("Sorry! Unable to copy file: " + file);
+                throw new RuntimeException ("Sorry! Unable to copy file: " + file);
+            }
+
+            out.println("Copied resource + " + resourceName + " with size " + newFile.length() + " bytes to " + newFile.getAbsolutePath());
         }
-
+	}
 
 	private static boolean isURLAlive(String url) throws IOException
 	{
@@ -197,7 +164,6 @@ public class TomcatMain {
 			{
 				u.disconnect();
                 out.println("ePADD is already running!");
-
                 return true;
 			}
 			u.disconnect();
@@ -212,9 +178,11 @@ public class TomcatMain {
 			// attempt to fetch the page
 			// throws a connect exception if the server is not even running
 			// so catch it and return false
-			String http = url + "/exit.jsp?message=Shutdown%20request%20from%20a%20different%20instance%20of%20ePADD"; // version num spaces and brackets screw up the URL connection
-			out.println ("Sending a kill request to " + http);
-			HttpURLConnection u = (HttpURLConnection) new URL(http).openConnection();
+			// String http = url + "exit.jsp?message=Shutdown%20request%20from%20a%20different%20instance%20of%20ePADD"; // version num spaces and brackets screw up the URL connection
+
+            // actually this should not be a HTTP connection, it can be simply any connection
+			out.println ("Sending a kill request to " + url);
+			HttpURLConnection u = (HttpURLConnection) new URL(url).openConnection();
 			u.connect();
 			if (u.getResponseCode() == 200)
 			{
@@ -222,7 +190,9 @@ public class TomcatMain {
 				return true;
 			}
 			u.disconnect();
-		} catch (ConnectException ce) { }
+		} catch (ConnectException ce) {
+            err.println ("Warning: unable to kill running server: " + ce);
+        }
 		return false;
 	}
 
@@ -231,7 +201,7 @@ public class TomcatMain {
 	 * false if the page is not alive at the timeout
 	 */
 
-	private static boolean waitTillPageAlive(String url, int timeoutSecs) throws MalformedURLException, IOException
+	private static boolean waitTillPageAlive(String url, int timeoutSecs) throws IOException
 	{
 		int tries = 0;
 		int secsBetweenTries = 1;
@@ -255,9 +225,7 @@ public class TomcatMain {
 		return true;
 	}
 
-	private static boolean browserOpen = true, searchMode = false, amuseMode = false;
-	private static String startPage = null, baseDir = null;
-
+	/** warns in a way that forces the user to notice (hopefully) */
  	public static void aggressiveWarn (String message, long sleepMillis)
  	{
  		out.println ("\n\n\n\n\n");
@@ -277,8 +245,6 @@ public class TomcatMain {
 		Options options = new Options();
 		options.addOption( "h", "help", false, "print this message");
 		options.addOption( "p", "port", true, "port number");
-//		options.addOption( "a", "alternate-email-addrs", true, "use <arg> as alternate-email-addrs");
-		options.addOption( "b", "base-dir", true, "use <arg> as archive dir");
 		options.addOption( "d", "debug", false, "turn debug messages on");
 		options.addOption( "df", "debug-fine", false, "turn detailed debug messages on (can result in very large logs!)");
 		options.addOption( "dab", "debug-address-book", false, "turn debug messages on for address book");
@@ -289,7 +255,7 @@ public class TomcatMain {
 		return options;
 	}
 	
-	private static void launchBrowser(String url, Splash splash) throws BrowserLaunchingInitializingException, UnsupportedOperatingSystemException, IOException, URISyntaxException
+	private static void launchBrowser(String url) throws BrowserLaunchingInitializingException, UnsupportedOperatingSystemException, IOException, URISyntaxException
 	{
 		// we use the browser launcher only for windows to try and skip IE
     	if (System.getProperty("os.name").toLowerCase().indexOf("windows") >= 0) 
@@ -306,10 +272,8 @@ public class TomcatMain {
     		}
     		out.println();
     		launcher.setNewWindowPolicy(true); // force new window
-			out.println ("Launching URL in browser: " + url);
 
-			if (splash != null)
-				tellUser (splash, "Launching URL in browser: " + url);
+            tellUser ("Launching URL in browser: " + url);
 
     		if (preferredBrowser != null)
     			launcher.openURLinBrowser(url);
@@ -319,21 +283,18 @@ public class TomcatMain {
         else
         {
         	out.println ("Using Java Desktop launcher to browse to " + url);
-        	desktop.browse(new java.net.URI(url));
+			if (desktop != null) // just defensive in case the desktop is not there (maybe in discovery mode?)
+	        	desktop.browse(new java.net.URI(url));
         }
 	}
-	
-	public static long KILL_AFTER_MILLIS = 24L * 3600L * 1000L; // default is 1 day, but can be changed
-	private static java.awt.Desktop desktop;
-	static { if (System.getProperty("nobrowseropen") == null) { desktop = java.awt.Desktop.getDesktop(); } } // necessary to do this early, causes problems with java 7 (both for taskbar icon and launching a browser) if you try and do it later
-	
-	private static void setupLogging()
-	{
-		// do this right up front, before JSPHelper is touched (which will call Log4JUtils.initialize())
 
-		// compute settings_DIR, which is also used as logging_dir
+    /** sets up SETTINGS_DIR by reading epadd.properties in home dir if required, also sets up IS_DISCOVERY_MODE.
+     * out and err streams are expected to be available.
+     * call this before setting up logging because it can affect the location of the log file
+     */
+	private static void readConfigFile() {
+		// compute settings_DIR, which is also used as logging_dir. so it should be called before logging is set up.
 		// Important: this logic should be the same as in EpaddInitializer inside the webapp (which calls muse/Config.java)
-		String SETTINGS_DIR;
 		{
 			String DEFAULT_SETTINGS_DIR = System.getProperty("user.home") + File.separator + "epadd-settings";
 			Properties props = new Properties();
@@ -357,8 +318,15 @@ public class TomcatMain {
 				SETTINGS_DIR = props.getProperty("epadd.settings.dir");
 			if (SETTINGS_DIR == null || SETTINGS_DIR.length() == 0)
 				SETTINGS_DIR = DEFAULT_SETTINGS_DIR;
-		}
 
+			if (System.getProperty("epadd.mode.discovery") != null || "discovery".equalsIgnoreCase((String) props.get("epadd.mode")))
+				IS_DISCOVERY_MODE = true;
+		}
+	}
+
+	/* sets out and err to point to the launcher log files (in the settings_dir) */
+	private static void setupLoggingForLauncher()
+	{
 		String logFile = SETTINGS_DIR + File.separatorChar + "epadd.log";
 		String launcherLogFile = SETTINGS_DIR + File.separatorChar + "epadd-launcher.log";
 		String launcherLogFileErr = SETTINGS_DIR + File.separatorChar + "epadd-launcher.err.log";
@@ -373,17 +341,17 @@ public class TomcatMain {
 		} catch (Exception e) {
 			out = System.out;
 			err = System.err; // reset them back
-			System.out.println ("Error redirecting out and err streams to " + launcherLogFile);
-			e.printStackTrace();
+			System.err.println ("Error redirecting out and err streams to " + launcherLogFile);
+			e.printStackTrace(System.err);
 		}
 	}
 	
-	private static void basicSetup(String[] args) throws ParseException
+	private static void parseOptions(String[] args) throws ParseException
 	{
 	    // set javawebstart.version to a dummy value if not already set (might happen when running with java -jar from cmd line)
 	    // exit.jsp doesn't allow us to showdown unless this prop is set
 	    if (System.getProperty("javawebstart.version") == null)
-		System.setProperty("javawebstart.version", "UNKNOWN");
+		    System.setProperty("javawebstart.version", "UNKNOWN");
 	    
 	    if (args.length > 0)
 		{
@@ -442,9 +410,7 @@ public class TomcatMain {
 	    
 	    if (cmd.hasOption("start-page"))
     		startPage = cmd.getOptionValue("start-page");
-	    if (cmd.hasOption("base-dir"))
-    		baseDir = cmd.getOptionValue("base-dir"); 
-	    
+
 	    /*
 	      if (!cmd.hasOption("no-shutdown")) {
 	      // arrange to kill Muse after a period of time, we don't want the server to run forever
@@ -470,121 +436,93 @@ public class TomcatMain {
 	    */
 	    System.setSecurityManager(null); // this is important	
 	}
-	
-	private static void setupResources() throws IOException, ServletException
+
+	/** unpack files needed from epadd-standalone.jar (epadd.war, crossdomain.xml and index.html) into tmp directories and point the server to them */
+	private static void setupTomcatServer() throws IOException, ServletException
 	{
-	    out.println("Starting up at time " + formatDateLong(new GregorianCalendar()));
+        System.setProperty("muse.container", "tomcat");
+
+	    out.println("Setting up ePADD at time " + formatDateLong(new GregorianCalendar()));
 	    out.println("Setting up Tomcat");
-	    // we set this and its read by JSPHelper within the webapp
 	    String tmp = System.getProperty("java.io.tmpdir");
-	    System.setProperty("muse.container", "tomcat");
-	    debugFile = tmp + File.separatorChar + "debug.txt";
-	    
-	    // need to copy crossdomain.xml file and make it available at /crossdomain.xml in the server
 
-	    server = new Tomcat();
-	    server.setPort(PORT);
-	    String baseDir = tmp + File.separator + "epadd";
-	    // create the webapps dir under tmpdir, otherwise we see a disturbing error message, it creates a local tomcat.9099 dir for deployment etc.
-	    // important: need to first clear the webapps and work dirs, otherwise it sometimes picks up a previous version of the war
-	    String webappsDir = baseDir + File.separator + "webapps";
-	    System.err.println("base dir: "+baseDir);
-	    System.err.println("tmp: "+tmp+", "+System.getProperty("java.io.tmpdir"));
-	    System.err.println("webapps dir: "+webappsDir);
-	    File webappsDirFile = new File(webappsDir);
-	    if (webappsDirFile.exists()) {
-		out.println ("Clearing Tomcat webapps dir: " + webappsDir);
-		FileUtils.deleteDirectory(webappsDirFile);
-		out.println("Done Tomcat clearing webapps dir: " + webappsDir);
-	    }
-	    new File(baseDir + File.separator + "webapps").mkdirs();
-	    System.err.println("Created: "+baseDir+File.separator+"webapps"+" folder");
-	    String workDir = baseDir + File.separator + "work";
-	    File workDirFile = new File(workDir);
-	    if (workDirFile.exists()) {
-		out.println ("Clearing Tomcat work dir: " + workDir);
-		FileUtils.deleteDirectory(workDirFile);
-		out.println("Done clearing Tomcat work dir: " + workDir);
-	    }
-	    new File(baseDir + File.separator + "work").mkdirs();
-	    System.err.println("created:" + baseDir+File.separator+"work folder");
-	    
-	    server.setBaseDir(baseDir);
-	    out.println ("Basedir set to " + baseDir);
-	    
-	    epaddWebapp = deployWarAt("epadd.war", WEBAPP_NAME);
-	    if (epaddWebapp == null)
-		{
-		    out.println("Aborting... no webapp");
-		    //        	return;
-		}
-	    else
-		out.println ("Deployed webapp to " + WEBAPP_NAME);
 
-	    String tmpResourceDir = tmp + File.separator + "ePADD-crossdomain-xml" + File.separatorChar;
-	    new File(tmpResourceDir).mkdirs();
+        String baseDir = tmp + File.separator + "epadd" + File.separator; // everything we do will be under this directory... don't touch anything else
 
-	    String resource = "crossdomain.xml";
-	    try {
-		final URL url = TomcatMain.class.getClassLoader().getResource(resource);
-		InputStream is = url.openStream();
-		String file = tmpResourceDir + File.separatorChar + resource;
-		copy_stream_to_file(is, file);
-		server.addWebapp("/", new File(tmpResourceDir).getAbsolutePath()); // See http://grokbase.com/t/tomcat/users/131xsqrrm2/embedded-tomcat-how-to-use-addcontext-for-docbase
-		out.println("Deployed resource " + resource + " from dir " + tmpResourceDir + " at /");
-	    } catch (Exception e) {
-        	out.println ("Aborting copy of resource " + resource + ": " + e);
-	    }
-	    
-	    resource = "index.html";
-	    try {
-		final URL url = TomcatMain.class.getClassLoader().getResource(resource);
-		InputStream is = url.openStream();
-		String file = tmpResourceDir + File.separatorChar + resource;
-		copy_stream_to_file(is, file);
-		server.addWebapp("/", new File(tmpResourceDir).getAbsolutePath()); // See http://grokbase.com/t/tomcat/users/131xsqrrm2/embedded-tomcat-how-to-use-addcontext-for-docbase
-		out.println("Deployed resource " + resource + " from dir " + tmpResourceDir + " at /");
-	    } catch (Exception e) {
-		out.println ("Aborting copy of resource " + resource + ": " + e);
-	    }
-	    
-	    out.println ("ePADD running check URL is " + MUSE_CHECK_URL);
-	    
-	    //Note: touch the connector only after setting the base dir and other setting params above, else the none of the settings would work
-	    //On Terry's archive, to update the correspondents list, we need a cushion of 10MB post size
+        // create webapp and work folders
+        {
+            // create the webapps dir under tmpdir, otherwise we see a disturbing error message, it creates a local tomcat.9099 dir for deployment etc.
+         //    debugFile = tmp + File.separatorChar + "debug.txt";
+
+            // important: need to first clear the webapps and work dirs, otherwise it sometimes picks up a previous version of the war
+            String webappsDir = baseDir + "webapps" + File.separator;
+            err.println("base dir: " + baseDir);
+            err.println("tmp: " + tmp + ", " + System.getProperty("java.io.tmpdir"));
+            err.println("webapps dir: " + webappsDir);
+
+            File webappsDirFile = new File(webappsDir);
+            if (webappsDirFile.exists()) {
+                out.println("Clearing Tomcat webapps dir: " + webappsDir);
+                FileUtils.deleteDirectory(webappsDirFile);
+                out.println("Done Tomcat clearing webapps dir: " + webappsDir);
+            }
+            new File(webappsDir).mkdirs();
+            err.println("Created webapps folder at " + webappsDir);
+
+            String workDir = baseDir + "work" + File.separator;
+            File workDirFile = new File(workDir);
+            if (workDirFile.exists()) {
+                out.println("Clearing Tomcat work dir: " + workDir);
+                FileUtils.deleteDirectory(workDirFile);
+                out.println("Done clearing Tomcat work dir: " + workDir);
+            }
+            new File(workDir).mkdirs();
+            System.err.println("Created work folder at " + workDir);
+        }
+        server = new Tomcat();
+        server.setPort(PORT);
+        server.setBaseDir(baseDir);
+        out.println ("Server basedir set to " + baseDir);
+
+        EPADD_WEBAPP = null;
+
+        // deploy crossdomain.xml and index.html and epadd.war at their respective paths in the server
+        try {
+            // context for /
+            {
+                // new directory to hold files that should be accessible with the path / under the server
+                String tmpResourceDir = baseDir + File.separator + "ePADD-crossdomain-xml" + File.separatorChar;
+                new File(tmpResourceDir).mkdirs();
+                copyResource("crossdomain.xml", tmpResourceDir);
+                copyResource("index.html", tmpResourceDir);
+
+                server.addWebapp("/", new File(tmpResourceDir).getAbsolutePath()); // See http://grokbase.com/t/tomcat/users/131xsqrrm2/embedded-tomcat-how-to-use-addcontext-for-docbase
+            }
+
+            // context for /epadd
+            copyResource("epadd.war", baseDir); // extract from standalone.jar to baseDir
+            EPADD_WEBAPP = server.addWebapp("/" + WEBAPP_NAME, baseDir + "epadd.war"); // deploy basedir/webapp.war to /webapp in tomcat
+
+        } catch (Exception e) {
+            out.println("Could not copy resources to deploy epadd! " + e);
+        }
+
+        if (EPADD_WEBAPP == null) {
+            out.println("Aborting... no epadd webapp");
+        }
+        else {
+            out.println("Deployed webapp to /" + WEBAPP_NAME);
+            out.println("ePADD running check URL is " + APP_CHECK_URL);
+        }
+
+	    // Note: touch the connector only after setting the base dir and other setting params above, else the none of the settings would work
+	    // On Terry's archive, to update the correspondents list, we need a cushion of 10MB post size
 	    server.getConnector().setMaxPostSize(10000000);
-	    /*
-	      ResourceHandler resource_handler = new ResourceHandler();
-	      //        resource_handler.setWelcomeFiles(new String[]{ "index.html" });
-	      resource_handler.setResourceBase(tmp);
-	    */        
-	    // set the header buffer size in the connectors, default is a ridiculous 4K, which causes failures any time there is
-	    // is a large request, such as selecting a few hundred folders. (even for posts!)
-	    // usually there is only one SocketConnector, so we just put the setHeaderBufferSize in a loop.
-	    /*
-	      Connector conns[] = server.getConnectors();
-	      for (Connector conn: conns)
-	      {
-	      int NEW_BUFSIZE = 1000000;
-	      // out.println ("Connector " + conn + " buffer size is " + conn.getHeaderBufferSize() + " setting to " + NEW_BUFSIZE);
-	      conn.setHeaderBufferSize(NEW_BUFSIZE);
-	      }
-	    */
-	    
-	    
-	    /*
-	      HandlerList hl = new HandlerList();
-	      if (webapp0 != null)
-	      hl.setHandlers(new Handler[]{webapp1, webapp0, resource_handler});
-	      else
-	      hl.setHandlers(new Handler[]{webapp1, resource_handler});
-	      server.setHandler(hl);
-	    */
 	}
 	
 	private static void shutdownSessions() {
 		out.println ("shutting down sessions...");
-		Session[] sessions = epaddWebapp.getManager().findSessions();
+		Session[] sessions = EPADD_WEBAPP.getManager().findSessions();
 		for (Session session: sessions)
 		    {
 			if (session instanceof HttpSession)
@@ -598,260 +536,6 @@ public class TomcatMain {
 	}
 
 
-	public static void main (String args[]) throws Exception
-	{
-	    Splash splash = null;
-
-	    boolean headless = System.getProperty("epadd.mode.discovery") != null;
-	    if (!headless)
-		splash = new Splash();
-	    else {
-		System.out.println("epadd running in headless discovery mode!");
-		browserOpen = false;
-	    }
-
-	    tellUser (splash, "Setting up logging...");
-	    setupLogging();
-	    basicSetup(args);
-	    BASE_URL = "http://localhost:" + PORT + "/" + WEBAPP_NAME + "/";
-	    MUSE_CHECK_URL = BASE_URL + "js/epadd.js"; // for quick check of existing muse or successful start up. BASE_URL may take some time to run and may not always be available now that we set dirAllowed to false and public mode does not serve /muse.
-
-	    tellUser (splash, "Log file: " + debugFile + "***\n");
-
-	    out.println ("Starting up ePADD on the local computer at " + BASE_URL + ", " + formatDateLong(new GregorianCalendar()));
-	    out.println ("***For troubleshooting information, see this file: " + debugFile + "***\n");
-	    out.println ("Current directory = " + System.getProperty("user.dir") + ", home directory = " + System.getProperty("user.home"));
-	    out.println("Memory status at the beginning: " + getMemoryStats());
-	    if (Runtime.getRuntime().maxMemory()/MB < 512)
-    		aggressiveWarn ("You are probably running ePADD without enough memory. \nIf you launched ePADD from the command line, you can increase memory with an option like java -Xmx1g", 2000);
-	    tellUser (splash, "Memory: " + getMemoryStats());
-
-	    // handle frequent error of user trying to launch another server when its already on
-	    // server.start() usually takes a few seconds to return
-	    // after that it takes a few seconds for the webapp to deploy
-	    // ignore any exceptions along the way and assume not if we can't prove it is alive
-	    boolean urlAlive = false;
-	    try { urlAlive = isURLAlive(MUSE_CHECK_URL); }
-	    catch (Exception e) { out.println ("Exception: e"); e.printStackTrace(out); }
-
-	    boolean disableStart = false;
-	    if (urlAlive)
-		{
-	       	out.println ("Oh! ePADD already running at: " + BASE_URL + ", will shut it down!");
-		tellUser (splash, "ePADD already running at: " + BASE_URL + ", will shut it down!");
-			killRunningServer(BASE_URL);
-
-			boolean killed = false;
-			int N_KILL_TRIES = 20, N_KILL_PERIOD_MILLIS = 3000;
-			// check every 3 secs 20 times (total 1 minute) for the previous epadd to die
-			// if it doesn't die after a minute, fail
-			for (int i = 0; i < N_KILL_TRIES; i++)
-			{
-				try { Thread.sleep(N_KILL_PERIOD_MILLIS);} catch (InterruptedException ie) {}
-				out.println("Checking " + MUSE_CHECK_URL);
-				tellUser (splash, "Checking " + MUSE_CHECK_URL);
-				try {urlAlive = isURLAlive(MUSE_CHECK_URL);}
-				catch (Exception e)
-				{
-					out.println("Exception: " + e);
-					e.printStackTrace(out);
-				}
-				if (!urlAlive)
-					break;
-			}
-
-	        if (!urlAlive)
-			{
-				out.println("Good. Shutdown succeeded, will restart");
-				tellUser (splash, "Good. Shutdown succeeded, we'll restart ePADD.");
-			} else
-			{
-				String message = "Previously running ePADD still alive despite attempt to shut it down, disabling fresh restart!\n";
-	        	message += "If you just want to use the previous instance of ePADD, please go to " + BASE_URL;
-	        	message += "\nTo kill this instance, please go to your computer's task manager and kill running java or javaw processes.\nThen try launching ePADD again.\n";
-	        	aggressiveWarn(message, 2000);
-				tellUser (splash, "Sorry, unable to kill previous ePADD. Quitting!");
-				try { Thread.sleep (10000); } catch (InterruptedException ie) { }
-				if (splash != null)
-					splash.close();
-				return;
-	        }
-		}
-        
-//        else
-//       	out.println ("Muse not already alive at URL: ..." + URL);
-
-        if (!disableStart) {
-    		setupResources();
-	        out.println ("Starting ePADD at URL: ..." + BASE_URL);
-			tellUser (splash, "Starting ePADD at " + BASE_URL);
-
-			server.start();
-
-			PrintStream debugOut1 = err;
-	        try {
-		        File f = new File(debugFile);
-		        if (f.exists())
-		        	f.delete(); // particular problem on windows :-(
-				debugOut1 = new PrintStream(new FileOutputStream(debugFile), false, "UTF-8");
-	        } catch (IOException ioe) {
-	        	out.println ("Warning: failed to delete debug file " + debugFile + " : " + ioe);
-	        }
-	
-	        final PrintStream debugOut = debugOut1;
-
-	        Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-	                public void run() {
-	                        try {
-	                       		shutdownSessions();
-	                                server.stop();
-	                                server.destroy();
-	                                debugOut.close();
-	                        } catch (Exception e) {
-	                                // TODO Auto-generated catch block
-	                                e.printStackTrace();
-	                        }
-	                }
-	        }));
-
-	        boolean success = waitTillPageAlive(MUSE_CHECK_URL, TIMEOUT_SECS);
-
-	        if (success)
-	        {
-	        	try {
-	        		int shutdownPort = PORT + 1; // shut down port is arbitrarily set to port + 1. it is ASSUMED to be free. 
-                    tellUser(splash, "Setting up shutdown port...");
-
-                    new ShutdownThread(server, shutdownPort).start(); // this will start a non-daemon thread that keeps the process alive
-	        		out.println ("Listening for ePADD shutdown message on port " + shutdownPort);
-					tellUser (splash, "Listening for ePADD shutdown message on port " + shutdownPort);
-
-				} catch (Exception e) {
-	            	out.println ("Unable to start shutdown listener, you will have to stop the server manually using Cmd-Q on Mac OS or kill javaw processes on Windows");
-	        	}
-	
-	        	try { setupSystemTrayIcon(); }
-	        	catch (Exception e) { out.println ("Unable to setup system tray icon: " + e); e.printStackTrace(err); }
-	        	
-	        	// open browser window
-	        	if (browserOpen)
-	        	{
-	        		preferredBrowser = null;
-		        	// launch a browser here
-	        		try {
-			        	
-			        	String link;
-			        	link = "http://localhost:" + PORT + "/epadd/index.jsp";
-			        	
-			        	if (startPage != null)
-			        	{
-			        		// startPage has to be absolute
-			        		link = "http://localhost:" + PORT + "/epadd/" + startPage;
-			        	}
-			        		
-			        	if (baseDir != null)
-			        		link = link + "?cacheDir=" + baseDir; // typically this is used when starting from command line. note: still using name, cacheDir
-			        	
-						launchBrowser(link, splash);
-			        
-	        		} catch (Exception e) {
-		        		out.println ("Warning: Unable to launch browser due to exception (use the -n option to prevent ePADD from trying to launch a browser):");
-		        		e.printStackTrace(out);
-	        		}
-	        	}
-	
-	        }
-	        else
-	        {
-	        	out.println ("\n\n\nSORRY!!! UNABLE TO DEPLOY WEBAPP, EXITING\n\n\n");
-				tellUser (splash, "SORRY!!! UNABLE TO DEPLOY WEBAPP, EXITING");
-			}
-	
-	        savedSystemOut = out;
-	        savedSystemErr = err;
-			System.setOut(debugOut);
-			System.setErr(debugOut);
-			if (splash != null)
-				splash.close();
-        }
-        // program should not halt here, as ShutdownThread is running as a non-daemon thread.
-		// splashDemo.closeWindow();
-	}
-
-    /** not used any more
-	static class ShutdownTimerTask extends TimerTask {
-		// possibly could tie this timer with user activity
-		public void run() {
-			out.println ("Shutting down ePADD completely at time " +  formatDateLong(new GregorianCalendar()));
-			savedSystemOut.println ("Shutting down ePADD completely at time " +  formatDateLong(new GregorianCalendar()));
-
-			// maybe throw open a browser window to let user know muse is shutting down ??
-			System.exit(0); // kill the program
-		}
-	}
-    */
-
-	// util methods
-	public static void copy_stream_to_file(InputStream is, String filename) throws IOException
-	{
-	    int bufsize = 64 * 1024;
-	    BufferedInputStream bis = null;
-	    BufferedOutputStream bos = null;
-	    try {
-	    	File f = new File(filename);
-	    	if (f.exists())
-	    	{
-		    	// out.println ("File " + filename + " exists");
-				boolean b = f.delete(); // best effort to delete file if it exists. this is because windows often complains about perms 
-				if (!b)
-					out.println ("Warning: failed to delete " + filename);
-	    	}
-	        bis = new BufferedInputStream(is, bufsize);
-	        bos = new BufferedOutputStream(new FileOutputStream(filename), bufsize);
-	        byte buf[] = new byte[bufsize];
-	        while (true)
-	        {
-	            int n = bis.read(buf);
-	            if (n <= 0)
-	                break;
-	            bos.write (buf, 0, n);
-	        }
-		} catch (IOException ioe)
-		{
-			out.println ("ERROR trying to copy data to file: " + filename + ", forging ahead nevertheless");
-	    } finally {
-	        if (bis != null) bis.close();
-	        if (bos != null) bos.close();
-	    }
-	}
-
-	public static String getStreamContents(InputStream in) throws IOException
-	{
-		BufferedReader br = new BufferedReader(new InputStreamReader (in));
-		StringBuilder sb = new StringBuilder();
-		// read all the lines one by one till eof
-		while (true)
-		{
-			String x = br.readLine();
-			if (x == null)
-				break;
-
-			sb.append(x);
-			sb.append("\n");
-		}
-		return sb.toString();
-	}
-
-	public static String formatDateLong(Calendar d)
-	{
-		if (d == null)
-			return "??-??";
-		else
-			return d.get(Calendar.YEAR) + "-" + String.format("%02d", (1+d.get(Calendar.MONTH))) + "-" + String.format ("%02d", d.get(Calendar.DAY_OF_MONTH)) + " "
-				 + String.format("%02d", d.get(Calendar.HOUR_OF_DAY)) + ":" + String.format("%02d", d.get(Calendar.MINUTE)) + ":" +
-				 String.format("%02d", d.get(Calendar.SECOND));
-	}
-	
 	/** we need a system tray icon for management.
 	 * http://docs.oracle.com/javase/6/docs/api/java/awt/SystemTray.html */
 	public static void setupSystemTrayIcon()
@@ -865,19 +549,19 @@ public class TomcatMain {
 	    TrayIcon trayIcon = null;
 	     if (SystemTray.isSupported()) 
 	     {
-		    System.out.println ("Adding ePADD to the system tray");
+		     tellUser ("Adding ePADD to the system tray");
 	         SystemTray tray = SystemTray.getSystemTray();
 	         
 	         URL u = TomcatMain.class.getClassLoader().getResource("muse-icon.png"); // note: this better be 16x16, Windows doesn't resize! Mac os does.
-	         System.out.println ("ePADD icon resource is " + u);
+	         out.println ("ePADD icon resource is " + u);
 	         Image image = Toolkit.getDefaultToolkit().getImage(u);
-	         System.out.println ("Image = " + image);
+	         out.println ("Image = " + image);
 	         
 	         // create menu items and their listeners
 	         ActionListener openMuseControlsListener = new ActionListener() {
 	             public void actionPerformed(ActionEvent e) {
 	            	 try {
-						launchBrowser(BASE_URL, null); // no + "info" for epadd like in muse
+						launchBrowser(BASE_URL); // no + "info" for epadd like in muse
 					} catch (Exception e1) {
 						e1.printStackTrace();
 					}
@@ -939,7 +623,51 @@ public class TomcatMain {
 		return r.freeMemory()/MB + " MB free, " + (r.totalMemory()/MB - r.freeMemory()/MB) + " MB used, "+ r.maxMemory()/MB + " MB max, " + r.totalMemory()/MB + " MB total";
 	}
 
-/** this is a stop tomcat thread to listen to a message on some port -- any message on this port will shut down Muse.
+	public static String formatDateLong(Calendar d)
+	{
+		if (d == null)
+			return "??-??";
+		else
+			return d.get(Calendar.YEAR) + "-" + String.format("%02d", (1+d.get(Calendar.MONTH))) + "-" + String.format ("%02d", d.get(Calendar.DAY_OF_MONTH)) + " "
+					+ String.format("%02d", d.get(Calendar.HOUR_OF_DAY)) + ":" + String.format("%02d", d.get(Calendar.MINUTE)) + ":" +
+					String.format("%02d", d.get(Calendar.SECOND));
+	}
+
+	// util methods
+	public static void copy_stream_to_file(InputStream is, String filename) throws IOException
+	{
+		int bufsize = 64 * 1024;
+		BufferedInputStream bis = null;
+		BufferedOutputStream bos = null;
+		try {
+			File f = new File(filename);
+			if (f.exists())
+			{
+				// out.println ("File " + filename + " exists");
+				boolean b = f.delete(); // best effort to delete file if it exists. this is because windows often complains about perms
+				if (!b)
+					out.println ("Warning: failed to delete " + filename);
+			}
+			bis = new BufferedInputStream(is, bufsize);
+			bos = new BufferedOutputStream(new FileOutputStream(filename), bufsize);
+			byte buf[] = new byte[bufsize];
+			while (true)
+			{
+				int n = bis.read(buf);
+				if (n <= 0)
+					break;
+				bos.write (buf, 0, n);
+			}
+		} catch (IOException ioe)
+		{
+			out.println ("ERROR trying to copy data to file: " + filename + ", forging ahead nevertheless");
+		} finally {
+			if (bis != null) bis.close();
+			if (bos != null) bos.close();
+		}
+	}
+
+	/** this is a stop tomcat thread to listen to a message on some port -- any message on this port will shut down Muse.
  * mainly meant so that a new launch of Muse will kill the previously running version. */
 static class ShutdownThread extends Thread {
 	static PrintStream out = System.out;
@@ -951,7 +679,7 @@ static class ShutdownThread extends Thread {
     	this.server = server;
     	this.shutdownPort = shutdownPort;
         setDaemon(false); // deliberately make it non-daemon so as to keep this program running.
-        setName("Stop Tomcat");
+        setName("ePADD shutdown thread");
         try {
             socket = new ServerSocket(this.shutdownPort, 1, InetAddress.getByName("127.0.0.1"));
         } catch(Exception e) {
@@ -968,16 +696,192 @@ static class ShutdownThread extends Thread {
             BufferedReader reader = new BufferedReader(new InputStreamReader(accept.getInputStream()));
             // wait for a readline
             String line = reader.readLine();
+            out.println("Received the line: " + line);
+
             // any input received, stop the server
             shutdownSessions();
-            server.stop();
+			if (server != null)
+	            server.stop();
             out.println("*** Stopped the Tomcat embedded web server. received: " + line);
             accept.close();
             socket.close();
             System.exit(1); // we need to explicitly system.exit because we now use Swing (due to system tray, etc).
         } catch(Exception e) {
+            out.println ("Error trying to shutdown Tomcat embedded web server gracefully: " + e);
+            e.printStackTrace (out);
             throw new RuntimeException(e);
         }
     }
 }
+
+    private static void killExistingEpaddIfRunning(String baseUrl) {
+        APP_CHECK_URL = baseUrl + "js/epadd.js"; // for quick check of existing muse or successful start up. baseUrl may take some time to run and may not always be available now that we set dirAllowed to false and public mode does not serve /muse.
+
+        // handle frequent error of user trying to launch another server when its already on
+        // server.start() usually takes a few seconds to return
+        // after that it takes a few seconds for the webapp to deploy
+        // ignore any exceptions along the way and assume not if we can't prove it is alive
+        boolean urlAlive = false;
+        try { urlAlive = isURLAlive(APP_CHECK_URL); }
+        catch (Exception e) { out.println ("Exception: e"); e.printStackTrace(out); }
+
+        if (!urlAlive)
+            return; // nothing to do
+
+        // oh, no... messy job of cleaning up the prev. running epadd.
+        // try to do it by sending it a shutdown message
+
+        {
+            tellUser ("ePADD already running at: " + baseUrl + ", will shut it down!");
+            try { killRunningServer("http://localhost:" + (PORT+1) + "/"); } catch (IOException ioe) { err.println ("Error trying to kill running ePADD! " + ioe); }
+
+            int N_KILL_TRIES = 20, N_KILL_PERIOD_MILLIS = 3000;
+            // check every 3 secs 20 times (total 1 minute) for the previous epadd to die
+            // if it doesn't die after a minute, fail
+            for (int i = 0; i < N_KILL_TRIES; i++)
+            {
+                try { Thread.sleep(N_KILL_PERIOD_MILLIS);} catch (InterruptedException ie) {}
+                tellUser ("Checking " + APP_CHECK_URL);
+                try {urlAlive = isURLAlive(APP_CHECK_URL);}
+                catch (Exception e)
+                {
+                    out.println("Exception: " + e);
+                    e.printStackTrace(out);
+                }
+                if (!urlAlive)
+                    break;
+            }
+
+            if (!urlAlive)
+            {
+                tellUser ("Good. Shutdown succeeded, we'll restart ePADD.");
+            } else
+            {
+                String message = "Previously running ePADD still alive despite attempt to shut it down, disabling fresh restart!\n";
+                message += "If you just want to use the previous instance of ePADD, please go to " + baseUrl;
+                message += "\nTo kill this instance, please go to your computer's task manager and kill running java or javaw processes.\nThen try launching ePADD again.\n";
+                aggressiveWarn(message, 2000);
+                tellUser ("Sorry, unable to kill previous ePADD. Quitting!");
+                try { Thread.sleep (10000); } catch (InterruptedException ie) { }
+                if (SPLASH != null)
+                    SPLASH.close();
+                return;
+            }
+        }
+
+    }
+
+	public static void main (String args[]) throws Exception
+	{
+		readConfigFile(); // should be read first because it reads epadd mode etc.
+		// IS_DISCOVERY_MODE should be set up here
+
+		if (!IS_DISCOVERY_MODE)
+			SPLASH = new Splash();
+		else {
+			System.out.println("epadd running in headless discovery mode!");
+			browserOpen = false;
+		}
+
+		tellUser ("Setting up logging...");
+
+		setupLoggingForLauncher();
+
+		parseOptions(args);
+
+		BASE_URL = "http://localhost:" + PORT + "/" + WEBAPP_NAME + "/";
+
+//		tellUser (splash, "Log file: " + debugFile + "***\n");
+
+		out.println ("Starting up ePADD on the local computer at " + BASE_URL + ", " + formatDateLong(new GregorianCalendar()));
+	//	out.println ("***For troubleshooting information, see this file: " + debugFile + "***\n");
+		out.println ("Current directory = " + System.getProperty("user.dir") + ", home directory = " + System.getProperty("user.home"));
+		out.println("Memory status at the beginning: " + getMemoryStats());
+
+		if (Runtime.getRuntime().maxMemory()/MB < 512) // user probably forgot to run with -Xmx
+			aggressiveWarn ("You are probably running ePADD without enough memory. \nIf you launched ePADD from the command line, you can increase memory with an option like java -Xmx4g", 2000);
+
+		tellUser ("Memory: " + getMemoryStats());
+
+        killExistingEpaddIfRunning(BASE_URL);
+
+        tellUser ("Starting ePADD at " + BASE_URL);
+
+		setupTomcatServer();
+		server.start();
+
+        /*
+		PrintStream debugOut1 = err;
+		try {
+			File f = new File(debugFile);
+			if (f.exists())
+				f.delete(); // particular problem on windows :-(
+			debugOut1 = new PrintStream(new FileOutputStream(debugFile), false, "UTF-8");
+		} catch (IOException ioe) {
+			out.println ("Warning: failed to delete debug file " + debugFile + " : " + ioe);
+		}
+
+		final PrintStream debugOut = debugOut1;
+*/
+
+
+		boolean success = waitTillPageAlive(APP_CHECK_URL, TIMEOUT_SECS);
+
+		if (success)
+		{
+			try {
+                // set it up so as to save sessions before exiting
+                Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+                    public void run() {
+                        try {
+                            shutdownSessions();
+                            server.stop();
+                            server.destroy();
+//					debugOut.close();
+                        } catch (Exception e) {
+                            // TODO Auto-generated catch block
+                            e.printStackTrace();
+                        }
+                    }
+                }));
+
+                // start a listener for the shutdown port
+				int shutdownPort = PORT + 1; // shut down port is arbitrarily set to PORT+1. it is ASSUMED to be free.
+				new ShutdownThread(server, shutdownPort).start(); // this will start a non-daemon thread that keeps the process alive
+				tellUser ("Listening for ePADD shutdown message on port " + shutdownPort);
+
+			} catch (Exception e) {
+				out.println ("Unable to start shutdown listener, you will have to stop the server manually using Cmd-Q on Mac OS or kill javaw processes on Windows");
+			}
+
+			try { setupSystemTrayIcon(); }
+			catch (Exception e) { out.println ("Unable to setup system tray icon: " + e); e.printStackTrace(err); }
+
+			// open browser window
+			if (browserOpen)
+			{
+				preferredBrowser = null;
+				// launch a browser here
+				try {
+					launchBrowser(BASE_URL);
+
+				} catch (Exception e) {
+					out.println ("Warning: Unable to launch browser due to exception (use the -n option to prevent ePADD from trying to launch a browser):");
+					e.printStackTrace(out);
+				}
+			}
+
+
+		}
+		else
+		{
+			tellUser ("SORRY!!! UNABLE TO START EPADD, EXITING");
+		}
+
+		if (SPLASH != null)
+            SPLASH.close();
+		// program should not halt here, as ShutdownThread is running as a non-daemon thread.
+		// splashDemo.closeWindow();
+	}
+
 }

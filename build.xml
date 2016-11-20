@@ -38,7 +38,7 @@
 		    <matches string="${os.version}" pattern="^10.[234567]." />
 		</condition>
 		<condition property="launch4j.dir" value="launch4j-macos10.8">
-		    <matches string="${os.version}" pattern="^(10.8|10.9|10.10|10.11)." />
+		    <matches string="${os.version}" pattern="^(10.8|10.9|10.10|10.11|10.12|10.13)." />
 		</condition>
 		<condition property="launch4j.dir" value="launch4j-3.8-win32">
 		    <os family="windows"/>
@@ -55,7 +55,7 @@
 		    <matches string="${os.version}" pattern="^10.[234567]." />
 		</condition>
 		<condition property="launch4j.dir" value="launch4j-macos10.8">
-		    <matches string="${os.version}" pattern="^(10.8|10.9|10.10|10.11)." />
+		    <matches string="${os.version}" pattern="^(10.8|10.9|10.10|10.11|10.12|10.13)." />
 		</condition>
 		<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask" classpath="${launch4j.dir}/launch4j.jar:${launch4j.dir}/lib/xstream.jar" />
 		<launch4j configFile="${launch4j.dir}/epadd-discovery.xml" />
@@ -67,7 +67,7 @@
          classpath="${lib.dir}/appbundler-1.0.jar" /> 
 
 <target name="macapp">
-    <mkdir dir="dist/epadd" /> <!-- dist/epadd becuase the vol. name on the dmg needs to be Muse and not dist. -->
+    <mkdir dir="dist/epadd" /> <!-- dist/epadd because the vol. name on the dmg needs to be epadd and not dist. -->
     <bundleapp outputdirectory="dist/epadd"
         name="epadd"
         displayname="epadd"
@@ -76,7 +76,7 @@
         mainclassname="edu.stanford.epadd.launcher.TomcatMain">
 	<runtime dir="${env.JAVA_HOME}" />
         <classpath file="epadd-standalone.jar" />
-	<option value="-Xmx2g"/>
+	<option value="-Xmx4g"/>
 	<option value="-splash:epadd-standalone.jar:splash-image.png"/>
    </bundleapp>
   <exec executable="hdiutil">
@@ -112,9 +112,9 @@
 
 </target>
 
-<target name="both-exe" depends="exe,exe-discovery"></target>
 <target name="both-mac" depends="macapp,macapp-discovery"></target>
+<target name="both-exe" depends="exe,exe-discovery"></target>
 
-<target name="release" depends="both-exe,both-mac"></target>
+<target name="release" depends="both-mac,both-exe"></target>
 
 </project>
