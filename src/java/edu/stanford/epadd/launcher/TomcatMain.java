@@ -122,23 +122,23 @@ public class TomcatMain {
 
         // extract the war to tmpdir
         {
-            final URL warUrl = TomcatMain.class.getClassLoader().getResource(resourceName);
-            if (warUrl == null) {
-                out.println("Sorry! Unable to locate file on classpath: " + resourceName);
+            final URL resourceUrl = TomcatMain.class.getClassLoader().getResource(resourceName);
+            if (resourceUrl == null) {
+                tellUser("Sorry! Unable to locate file on classpath: " + resourceName);
                 throw new RuntimeException ("Sorry! Unable to locate file on classpath: " + resourceName);
             }
-            InputStream is = warUrl.openStream();
-            out.println("Extracting: " + resourceName + " to " + file + " is=" + is);
+            InputStream is = resourceUrl.openStream();
+            out.println("Copying: " + resourceName + " to " + file + " is=" + is);
 
             File existingFile = new File(file);
             if (existingFile.exists())
-                out.println("Existing file: " + file);
+                tellUser("Existing file: " + file);
 
             copy_stream_to_file(is, file);
 
             File newFile = new File(file);
             if (!newFile.exists()) {
-                out.println("Sorry! Unable to copy file: " + file);
+                tellUser("Sorry! Unable to copy file: " + file);
                 throw new RuntimeException ("Sorry! Unable to copy file: " + file);
             }
 
@@ -446,7 +446,6 @@ public class TomcatMain {
 	    out.println("Setting up Tomcat");
 	    String tmp = System.getProperty("java.io.tmpdir");
 
-
         String baseDir = tmp + File.separator + "epadd" + File.separator; // everything we do will be under this directory... don't touch anything else
 
         // create webapp and work folders
@@ -457,7 +456,7 @@ public class TomcatMain {
             // important: need to first clear the webapps and work dirs, otherwise it sometimes picks up a previous version of the war
             String webappsDir = baseDir + "webapps" + File.separator;
             err.println("base dir: " + baseDir);
-            err.println("tmp: " + tmp + ", " + System.getProperty("java.io.tmpdir"));
+            err.println("tmp: " + tmp);
             err.println("webapps dir: " + webappsDir);
 
             File webappsDirFile = new File(webappsDir);
@@ -467,7 +466,7 @@ public class TomcatMain {
                 out.println("Done Tomcat clearing webapps dir: " + webappsDir);
             }
             new File(webappsDir).mkdirs();
-            err.println("Created webapps folder at " + webappsDir);
+            out.println("Created webapps folder at " + webappsDir);
 
             String workDir = baseDir + "work" + File.separator;
             File workDirFile = new File(workDir);
@@ -477,7 +476,7 @@ public class TomcatMain {
                 out.println("Done clearing Tomcat work dir: " + workDir);
             }
             new File(workDir).mkdirs();
-            System.err.println("Created work folder at " + workDir);
+            out.println("Created work folder at " + workDir);
         }
         server = new Tomcat();
         server.setPort(PORT);
@@ -493,7 +492,8 @@ public class TomcatMain {
                 // new directory to hold files that should be accessible with the path / under the server
                 String tmpResourceDir = baseDir + File.separator + "ePADD-crossdomain-xml" + File.separatorChar;
                 new File(tmpResourceDir).mkdirs();
-                copyResource("crossdomain.xml", tmpResourceDir);
+                if (!IS_DISCOVERY_MODE)
+                    copyResource("crossdomain.xml", tmpResourceDir); // crossdomain.xml is not present in discovery mode since there are no attachments
                 copyResource("index.html", tmpResourceDir);
 
                 server.addWebapp("/", new File(tmpResourceDir).getAbsolutePath()); // See http://grokbase.com/t/tomcat/users/131xsqrrm2/embedded-tomcat-how-to-use-addcontext-for-docbase
@@ -554,6 +554,7 @@ public class TomcatMain {
 	         
 	         URL u = TomcatMain.class.getClassLoader().getResource("muse-icon.png"); // note: this better be 16x16, Windows doesn't resize! Mac os does.
 	         out.println ("ePADD icon resource is " + u);
+
 	         Image image = Toolkit.getDefaultToolkit().getImage(u);
 	         out.println ("Image = " + image);
 	         
