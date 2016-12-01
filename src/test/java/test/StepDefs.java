@@ -6,6 +6,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.Logger;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.ie.InternetExplorerDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
@@ -20,10 +21,12 @@ import java.util.concurrent.TimeUnit;
 
 public class StepDefs {
 	public WebDriver driver;
+    public static String BASE_DIR;
+    public static String DEFAULT_BASE_DIR = System.getProperty ("user.home") + File.separator + "epadd-test";
 	public static File newScreenshotFolder;
-	private static Log log = LogFactory.getLog(Main.class);
+	private static Log log = LogFactory.getLog(Tester.class);
 	static Properties VARS;
-	public static final Logger logger = Logger.getLogger(Main.class.getName());
+	public static final Logger logger = Logger.getLogger(Tester.class.getName());
 	public static String EPADD_TEST_PROPS_FILE = System.getProperty("user.home") + File.separator + "epadd.test.properties";
 
 	String userHome = System.getProperty("user.home");
@@ -52,14 +55,23 @@ public class StepDefs {
 			log.warn("ePADD properties file " + EPADD_TEST_PROPS_FILE + " does not exist or is not readable");
 		}
 
-        hooks = new Hooks();
-        screenshotsDir = (String) VARS.get("screenshotsDir");
-		if (screenshotsDir != null)
-			screenshotsDir = "screenshots";
+        for (String key: VARS.stringPropertyNames()) {
+            String val = System.getProperty (key);
+            if (val != null && val.length() > 0)
+                VARS.setProperty(key, val);
+        }
 
-        if (screenshotsDir != null)
-            new File(screenshotsDir).mkdirs();
-        logger.info ("Screenshots will be stored in " + screenshotsDir);
+        BASE_DIR = VARS.getProperty("epadd.test.dir");
+        if (BASE_DIR == null)
+            BASE_DIR = DEFAULT_BASE_DIR;
+
+        new File(BASE_DIR).mkdirs();
+        screenshotsDir = BASE_DIR + File.separator + "screenshots";
+        new File(screenshotsDir).mkdirs();
+
+        logger.info ("Base dir for this test run is: " + BASE_DIR);
+        hooks = new Hooks();
+
     }
 
     public static String stackTrace(Throwable t)
@@ -107,24 +119,29 @@ public class StepDefs {
 	}
 
 	// @Then("I close ePADD$")
-	public void closeApplication() throws IOException, InterruptedException {
+	public void closeEpadd() throws IOException, InterruptedException {
 		if (epaddProcess == null)
 			return;
 		epaddProcess.destroy();
 	}
 
 	// @Given("I open ePADD$")
-	public void openApplication() throws IOException, InterruptedException {
+	public void openEpadd(String mode) throws IOException, InterruptedException {
 		// we'll always launch using epadd-standalone.jar
-		String javaBinary = hooks.getValue("javaBinary");
-		if (!new File(javaBinary).exists()) {
-			logger.warn ("Warning: java binary does not exist, is probably misconfigured! " + javaBinary);
-			throw new RuntimeException();
-		}
 
 		String errFile = System.getProperty("java.io.tmpdir") + File.separator + "epadd-test.err.txt";
 		String outFile = System.getProperty("java.io.tmpdir") + File.separator + "epadd-test.out.txt";
-		ProcessBuilder pb = new ProcessBuilder(javaBinary, "-Xmx2g", "-jar", "epadd-standalone.jar", "--no-browser-open");
+        String cmd = VARS.getProperty ("cmd");
+        if (cmd == null) {
+            log.warn ("Please confirm cmd in epadd.test.properties");
+            throw new RuntimeException ("no command to start epadd");
+        }
+
+        cmd = "java -Depadd.mode=" + mode +  " -Depadd.base.dir=" + BASE_DIR + " " + cmd;
+        cmd = cmd + " --no-browser-open"; // we'll open our own browser
+        ProcessBuilder pb = new ProcessBuilder(cmd.split(" "));
+
+//		ProcessBuilder pb = new ProcessBuilder("java", "-Xmx2g", "-jar", "epadd-standalone.jar", "--no-browser-open");
 		pb.redirectError(new File(errFile));
 		pb.redirectOutput(new File(outFile));
 		logger.info ("Sending epadd output to: " + outFile);
@@ -177,7 +194,7 @@ public class StepDefs {
             // String consoleOutputFile = this.getValue("browserConsoleOutputFile");
             // System.setProperty("webdriver.log.file", consoleOutputFile + "-" + this.getValue("browser") + ".txt");
 
-            String browser = (String) VARS.get("browser");
+            String browser = VARS.getProperty ("browser");
 
             if (browser == null)
                 browser = "chrome";
@@ -185,14 +202,16 @@ public class StepDefs {
                 driver = new FirefoxDriver();
             } else if ("chrome".equalsIgnoreCase(browser)) {
                 if (runningOnMac()) {
-                    String macDriver = (String) VARS.get ("webdriver.chrome.driver");
+                    String macDriver = VARS.getProperty ("webdriver.chrome.driver");
                     if (macDriver == null)
                         macDriver = "/Users/hangal/workspace/epadd-launcher/src/test/resources/chromedriver";
                     System.setProperty("webdriver.chrome.driver", macDriver);
                 } else {
                     System.err.println ("WARNING!!!! Chrome driver is only specified for Mac?");
                 }
-                driver = new ChromeDriver();
+                ChromeOptions options = new ChromeOptions();
+                options.addArguments("--always-authorize-plugins=true"); // to allow flash - c.f. http://stackoverflow.com/questions/28804247/how-to-enable-plugin-in-chrome-browser-through-capabilities-using-web-driver
+                driver = new ChromeDriver(options);
             } else if ("ie".equalsIgnoreCase(browser)) {
                 driver = new InternetExplorerDriver();
             }
@@ -210,7 +229,7 @@ public class StepDefs {
 		Dimension saved = driver.manage().window().getSize();
 //		driver.manage().window().setSize(new Dimension(1280, 2000));
 		File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-		FileUtils.copyFile(scrFile, new File(screenshotsDir + File.separator + VARS.get("browser") + "-" + page + "-" + stamp));
+		FileUtils.copyFile(scrFile, new File(screenshotsDir + File.separator + VARS.getProperty("browser") + "-" + page + "-" + stamp));
 //		driver.manage().window().setSize(saved);
 	}
 
@@ -726,7 +745,7 @@ public class StepDefs {
 			return null;
 		s = s.trim(); // strip spaces before and after
 		if (s.startsWith("<") && s.endsWith(">"))
-			s = (String) VARS.get(s.substring(1, s.length()-1));
+			s = VARS.getProperty(s.substring(1, s.length()-1));
 		if (s.startsWith("\"") && s.endsWith("\"") && s.length() >= 2) // strip quotes -- if "abc", simply make it abc
 			s = s.substring(1, s.length()-1);
 		return s;

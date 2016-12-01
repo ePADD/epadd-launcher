@@ -11,18 +11,17 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import java.io.*;
-import java.net.MalformedURLException;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Created by hangal on 11/29/16.
  */
-public class Main {
+public class Tester {
 
-    private static Log log = LogFactory.getLog(Main.class);
+    private static Log log = LogFactory.getLog(Tester.class);
     static Properties VARS;
-    public static String BASE_URL = "http://localhost:8080/epadd/";
+    public static String BASE_URL = "http://localhost:9099/epadd/";
     public static String EPADD_TEST_PROPS_FILE = System.getProperty("user.home") + File.separator + "epadd.test.properties";
 
     public boolean runningOnMac() { return System.getProperty("os.name").startsWith("Mac"); }
@@ -234,7 +233,7 @@ public class Main {
         test.visitAndTakeScreenshot(BASE_URL + "export-review-processing?type=doNotDeliver");
 
         // delivery
-        test.visitAndTakeScreenshot(BASE_URL + "/review-cart");
+        test.visitAndTakeScreenshot(BASE_URL + "review-cart");
     }
 
     private static Options getOpt()
@@ -262,22 +261,28 @@ public class Main {
         return options;
     }
 
-    public static void main (String args[]) throws InterruptedException, IOException, ParseException {
+    public void doIt(String args[]) throws IOException, InterruptedException, ParseException {
         Options options = getOpt();
         CommandLineParser parser = new PosixParser();
         CommandLine cmd = parser.parse(options, args);
+        test = new StepDefs();
+        test.openEpadd("appraisal");
 
-        Main m = new Main();
-        m.test = new StepDefs();
-        m.test.openBrowser();
-        Thread.sleep (3000); // wait for it to startup and load the archive if needed
+        test.openBrowser();
+        Thread.sleep (15000); // wait for it to startup and load the archive if needed
         if (cmd.hasOption("import")) {
-            m.appraisalImport();
+            appraisalImport();
         }
 
         if (cmd.hasOption("visit-all-pages")) {
             // visit all pages, take screenshot
-            m.visitAllPages();
+            visitAllPages();
         }
+
+        test.closeEpadd();
+    }
+
+    public static void main (String args[]) throws InterruptedException, IOException, ParseException {
+        new Tester().doIt(args);
     }
 }
