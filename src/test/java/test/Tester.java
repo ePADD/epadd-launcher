@@ -28,156 +28,87 @@ public class Tester {
     WebDriver driver;
     StepDefs test;
 
-
-
-    // temporarily disable quits
-//	@  After
-    public void closeBrowser() {
-        try {
-            driver.quit();
-        } catch (Exception e) {
-
-        }
-    }
-    public static String stackTrace(Throwable t)
-    {
-        StringWriter sw = new StringWriter(0);
-        PrintWriter pw = new PrintWriter(sw);
-        t.printStackTrace(pw);
-        pw.close();
-        return sw.getBuffer().toString();
-    }
-
-    public static void print_exception(String message, Throwable t, Log log)
-    {
-        String trace = stackTrace(t);
-        String s = message + "\n" + t.toString() + "\n" + trace;
-        if (log != null)
-            log.warn(s);
-        System.err.println(s);
-    }
-
-    /* time is in seconds */
-    public void waitFor(int time) throws InterruptedException {
-        TimeUnit.SECONDS.sleep(time);
-    }
-
-    /** if the value is <abc> then we read the value of property abc in the hook. otherwise we use it as is. */
-    public String processValue(String s) {
-        if (s == null)
-            return null;
-        s = s.trim(); // strip spaces before and after
-        if (s.startsWith("<") && s.endsWith(">"))
-            s = (String) VARS.get(s.substring(1, s.length()-1));
-        if (s.startsWith("\"") && s.endsWith("\"") && s.length() >= 2) // strip quotes -- if "abc", simply make it abc
-            s = s.substring(1, s.length()-1);
-        return s;
-    }
-
-    public void enterValueInInputField(String fieldName, String inputValue) {
-        inputValue = processValue(inputValue);
-        try {
-            WebElement inputField = driver.findElement(By.name(fieldName));
-            inputField.sendKeys(inputValue);
-        } catch (Exception e) {
-            throw new RuntimeException ("Unable to find an input field to enter value in: (" + inputValue + ") " + "field: " + fieldName + " page: " + driver.getCurrentUrl());
-        }
-    }
-
-    public void clickOn(String elementType, String linkText) throws InterruptedException {
-        elementType = elementType.trim(); // required because linkText might come as "button " due to regex matching above
-        linkText = processValue(linkText);
-        linkText = linkText.toLowerCase();
-        WebElement e = null;
-
-        // we'll look for linkText in a few specific tags, in this defined order
-        // sometimes the text we're looking for is under a further element, like <a><p>...</p></a>
-        String searchOrderEType[] = (elementType.length() != 0) ? new String[]{elementType, elementType + "//*"} : new String[]{"button","div//button","div//*", "a", "td", "button//*","a//*", "td//*","span"};
-
-        // prefer to find an exact match first if possible
-        // go in order of searchOrderEtype
-        // be careful to ignore invisible elements
-        // be case-insensitive
-        for (String s: searchOrderEType) {
-            String xpath = "//" + s + "[translate(text(),  'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz') = '" + linkText + "')]";
-            try { e = driver.findElement(By.xpath(xpath)); } catch (Exception e1) { } // ignore the ex, we'll try to find a link containing it
-            if (e != null && !e.isDisplayed())
-                e = null; // doesn't count if the element is not visible
-            if (e != null)
-                break;
-        }
-
-        // no exact match? try to find a contained match, again in order of searchOrderEtype
-        if (e == null) {
-            for (String s: searchOrderEType) {
-                String xpath = "//" + s + "[contains(translate(text(),  'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '" + linkText + "')]";
-                try { e = driver.findElement(By.xpath(xpath)); } catch (Exception e1) { } // ignore the ex, we'll try to find a link containing it
-                if (e != null && !e.isDisplayed())
-                    e = null; // doesn't count if the element is not visible
-                if (e != null)
-                    break;
-            }
-        }
-
-        // ok, we we have an element to click on?
-        if (e != null) {
-            // color the border red of the selected element to make it easier to understand what is happening
-            ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true); arguments[0].style.border = '2px solid red';", e);
-            log.info ("Clicking on (" + e.getTagName() + ") containing " + linkText);
-            waitFor(2);
-            e.click(); // seems to be no way of getting text of a link through CSS
-            waitFor(2); // always wait for 1 sec after click
-        } else
-            throw new RuntimeException ("Unable to find an element to click on: (" + elementType + ") " + linkText + " page: " + driver.getCurrentUrl());
-    }
-
-    public void waitForButton(String buttonText, int time) {
-        buttonText = processValue(buttonText);
-
-        long startMillis = System.currentTimeMillis();
-        WebDriverWait wait = new WebDriverWait(driver, time);
-        try {
-            buttonText = buttonText.toLowerCase();
-            String xpath = "//*[contains(translate(text(),  'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '" + buttonText + "')]";
-
-            driver.findElement(By.xpath(xpath)).getText();
-            wait.until(ExpectedConditions.elementToBeClickable(By.xpath(xpath))); // case insensitive match! see
-        } catch (org.openqa.selenium.TimeoutException e) {
-            throw new RuntimeException ("Button text" + buttonText + " was not found in " + time + " seconds. Exception occured: ", e);
-        }
-
-        log.info ("Button " + buttonText + " clickable in " + (System.currentTimeMillis() - startMillis) + "ms");
-    }
-
-    public void waitForPageToLoad(String url, int time) {
-        url = processValue(url);
-        long startMillis = System.currentTimeMillis();
-        WebDriverWait wait = new WebDriverWait(driver, time);
-        try {
-            wait.until(ExpectedConditions.urlMatches(url));
-        } catch (org.openqa.selenium.TimeoutException e) {
-            throw new RuntimeException (url + " did not open in " + time + " seconds. Exception occurred: ", e);
-        }
-
-        log.info ("Page " + url + " loaded in " + (System.currentTimeMillis() - startMillis) + "ms");
-    }
-
-    public void appraisalImport() throws InterruptedException {
+    public void appraisalImport() throws InterruptedException, IOException {
         test.openURL(BASE_URL + "email-sources");
-        test.enterValueInInputField ("name", "<name>");
-        test.enterValueInInputField ("alternateEmailAddrs", "<emailAddress>");
-        test.enterValueInInputField ("mboxDir2", "<emailFolderLocationSrc1>");
-        test.enterValueInInputField ("emailSource2", "src1");
-        test.clickOn ("", " Add another folder");
-        test.enterValueInInputField ("mboxDir3", "<emailFolderLocationSrc2>");
-        test.enterValueInInputField ("emailSource3", "src2");
+        test.enterValueInInputField("name", "<name>");
+        test.enterValueInInputField("alternateEmailAddrs", "<emailAddress>");
+        test.enterValueInInputField("mboxDir2", test.resolveValue("<data.dir>") + File.separator + "mbox1");
+        test.enterValueInInputField("emailSource2", "src1");
+        test.clickOn("", " Add another folder");
+        test.enterValueInInputField("mboxDir3", test.resolveValue("<data.dir>") + File.separator + "mbox2");
+        test.enterValueInInputField("emailSource3", "src2");
 
-        test.clickOn ("", "Continue");
-        test.waitForButton ("Select all folders", 20 /* seconds */);
-        test.clickOn ("#selectall0");
-        test.clickOn ("#selectall1");
-        test.clickOn ("", "Continue");
-        test.waitForPageToLoad ("<browserTopPage>", 240);
+        test.clickOn("", "Continue");
+        test.waitForButton("Select all folders", 20 /* seconds */);
+        test.clickOnCSS("#selectall0");
+        test.clickOnCSS("#selectall1");
+        test.clickOn("", "Continue");
+        test.waitForPageToLoad("<browserTopPage>", 240);
+        setImages();
+    }
+
+    public void setImages() throws InterruptedException, IOException {
+        test.openURL(BASE_URL + "browse-top");
+        test.clickOnCSS ("#more-options");
+        test.clickOn ("Set Images");
+        test.enterValueInInputField("profilePhoto", test.resolveValue("<data.dir>") + File.separator + "Jeb Bush Images" + File.separator + "profilePhoto.png");
+        test.enterValueInInputField("bannerImage", test.resolveValue("<data.dir>") + File.separator + "Jeb Bush Images" + File.separator + "bannerImage.png");
+        test.enterValueInInputField("landingPhoto", test.resolveValue("<data.dir>") + File.separator + "Jeb Bush Images" + File.separator + "landingPhoto.png");
+        test.clickOn ("button", "Upload");
+        test.clickOn ("button", "Back");
+        test.takeScreenshot("profile-images");
+    }
+
+    private void checkNumberOfAttachments() {
+        test.openURL(BASE_URL + "browse-top");
+        test.verifyEquals ("#nImageAttachments", "136");
+        test.verifyEquals ("#nDocAttachments", "289");
+        test.verifyEquals ("#nOtherAttachments", "70");
+    }
+
+    public void basicChecks() throws IOException, InterruptedException {
+        test.visitAndTakeScreenshot(BASE_URL + "debug");
+        test.visitAndTakeScreenshot(BASE_URL + "settings");
+        test.visitAndTakeScreenshot(BASE_URL + "about");
+        test.visitAndTakeScreenshot(BASE_URL + "report");
+        test.visitAndTakeScreenshot(BASE_URL + "error");
+        checkNumberOfAttachments();
+    }
+
+    private void checkCorrespondents() throws InterruptedException, IOException {
+        test.clickOnCSS("a[href='correspondents']");
+        test.verifyEquals ("span.field-name", "All Correspondents");
+        test.clickOnCSS ("td > a");
+        test.someMessagesShouldBeDisplayed();
+        test.clickOn ("Go to Graph View");
+        test.verifyEquals ("span.field-name", "Top correspondents graph");
+        test.takeScreenshot("correspondents-graph");
+    }
+
+    private void checkAttachments() throws InterruptedException, IOException {
+        test.clickOn ("Browse");
+        test.clickOn ("Image attachments");
+     //   test.clickOnCSS("a[href='image-attachments']");
+        test.takeScreenshot("image-attachments");
+
+        test.navigateBack();
+        test.waitFor (2);
+        test.clickOn("", "Document attachments");
+//        test.clickOnCSS ("a[href='attachments?type=doc']");
+        test.verifyContains ("span.field-value", "Document attachments");
+        test.clickOnCSS ("td > a");
+        test.waitFor (2);
+        test.someMessagesShouldBeDisplayed();
+
+        test.navigateBack();
+        test.waitFor (2);
+        test.clickOn("Other attachments");
+   //     test.clickOnCSS ("a[href='attachments?type=nondoc']");
+        test.verifyContains ("span.field-value", "Other attachments");
+        test.clickOnCSS ("td > a");
+        test.waitFor (2);
+        test.someMessagesShouldBeDisplayed();
+        test.navigateBack();
     }
 
     public void visitAllPages() throws InterruptedException, IOException {
@@ -214,11 +145,6 @@ public class Tester {
         test.visitAndTakeScreenshot(BASE_URL + "export-review?type=doNotTransfer");
 
         test.visitAndTakeScreenshot(BASE_URL + "export-mbox");
-        test.visitAndTakeScreenshot(BASE_URL + "debug");
-        test.visitAndTakeScreenshot(BASE_URL + "settings");
-        test.visitAndTakeScreenshot(BASE_URL + "about");
-        test.visitAndTakeScreenshot(BASE_URL + "report");
-        test.visitAndTakeScreenshot(BASE_URL + "error");
 
         // processing mode:
         test.visitAndTakeScreenshot(BASE_URL + "collections");
@@ -243,6 +169,8 @@ public class Tester {
         Options options = new Options();
         options.addOption( "ai", "import", false, "check appraisal import");
         options.addOption( "vap", "visit-all-pages", false, "visit all pages and check that they are alive (appraisal mode)");
+        options.addOption( "si", "set-images", false, "set archive images");
+
         options.addOption( "b", "browse", false, "check browse (appraisal mode)");
         options.addOption( "fl", "flags", false, "check flags (appraisal)");
         options.addOption( "as", "adv-search", false, "check advanced search (appraisal mode)");
@@ -274,12 +202,17 @@ public class Tester {
             appraisalImport();
         }
 
+        basicChecks();
+        checkCorrespondents();
+        checkAttachments();
+
         if (cmd.hasOption("visit-all-pages")) {
             // visit all pages, take screenshot
             visitAllPages();
         }
 
         test.closeEpadd();
+        test.closeBrowser();
     }
 
     public static void main (String args[]) throws InterruptedException, IOException, ParseException {

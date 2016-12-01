@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 public class StepDefs {
 	public WebDriver driver;
     public static String BASE_DIR;
+    public static String BROWSER;
+
     public static String DEFAULT_BASE_DIR = System.getProperty ("user.home") + File.separator + "epadd-test";
 	public static File newScreenshotFolder;
 	private static Log log = LogFactory.getLog(Tester.class);
@@ -114,7 +116,7 @@ public class StepDefs {
 	}
 
 	// @Then("I navigate back$")
-	public void navigation() {
+	public void navigateBack() {
 		driver.navigate().back();
 	}
 
@@ -166,6 +168,8 @@ public class StepDefs {
 	public void verifyContains(String selector, String expectedValue) {
 		expectedValue = resolveValue(expectedValue);
 		String actualText = driver.findElement(By.cssSelector(selector)).getText();
+		actualText = actualText.toLowerCase();
+		expectedValue = expectedValue.toLowerCase();
 		if (!actualText.contains(expectedValue)) {
 			logger.warn ("ACTUAL text for CSS selector " + selector + ": " + actualText + " EXPECTED TO CONTAIN: " + expectedValue);
 			throw new RuntimeException();
@@ -194,13 +198,13 @@ public class StepDefs {
             // String consoleOutputFile = this.getValue("browserConsoleOutputFile");
             // System.setProperty("webdriver.log.file", consoleOutputFile + "-" + this.getValue("browser") + ".txt");
 
-            String browser = VARS.getProperty ("browser");
+            BROWSER = VARS.getProperty ("browser");
 
-            if (browser == null)
-                browser = "chrome";
-            if ("firefox".equalsIgnoreCase(browser)) {
+            if (BROWSER == null)
+                BROWSER = "chrome";
+            if ("firefox".equalsIgnoreCase(BROWSER)) {
                 driver = new FirefoxDriver();
-            } else if ("chrome".equalsIgnoreCase(browser)) {
+            } else if ("chrome".equalsIgnoreCase(BROWSER)) {
                 if (runningOnMac()) {
                     String macDriver = VARS.getProperty ("webdriver.chrome.driver");
                     if (macDriver == null)
@@ -212,7 +216,7 @@ public class StepDefs {
                 ChromeOptions options = new ChromeOptions();
                 options.addArguments("--always-authorize-plugins=true"); // to allow flash - c.f. http://stackoverflow.com/questions/28804247/how-to-enable-plugin-in-chrome-browser-through-capabilities-using-web-driver
                 driver = new ChromeDriver(options);
-            } else if ("ie".equalsIgnoreCase(browser)) {
+            } else if ("ie".equalsIgnoreCase(BROWSER)) {
                 driver = new InternetExplorerDriver();
             }
             driver.manage().deleteAllCookies();
@@ -222,14 +226,18 @@ public class StepDefs {
         }
     }
 
+    public void closeBrowser() {
+		driver.close();
+	}
+
 	// @Then("^I take full page screenshot called \"(.*?)\"$")
-	public void takeScreenshot(String page) throws IOException {
+	public void takeScreenshot(String pageName) throws IOException {
 		String timestamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
 		String stamp = timestamp + ".png";
 		Dimension saved = driver.manage().window().getSize();
 //		driver.manage().window().setSize(new Dimension(1280, 2000));
 		File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-		FileUtils.copyFile(scrFile, new File(screenshotsDir + File.separator + VARS.getProperty("browser") + "-" + page + "-" + stamp));
+		FileUtils.copyFile(scrFile, new File(screenshotsDir + File.separator + BROWSER + "-" + pageName + "-" + stamp));
 //		driver.manage().window().setSize(saved);
 	}
 
@@ -254,7 +262,7 @@ public class StepDefs {
 
 
 	// @Given("I find CSS element \"(.*)\" and click on it$")
-	public void clickOn(String cssSelector) throws InterruptedException {
+	public void clickOnCSS(String cssSelector) throws InterruptedException {
 		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
 		driver.findElement(By.cssSelector(cssSelector)).click();
 	}
@@ -269,6 +277,10 @@ public class StepDefs {
 			throw new RuntimeException("Expected CSS element " + cssSelector + " to contain " + expectedText + " but it has " + elementText);
 		}
 		logger.info("CSS element " + cssSelector + " has value " + elementText + " and contains " + expectedText);
+	}
+
+	public void clickOn(String linkText) throws InterruptedException {
+		clickOn ("", linkText);
 	}
 
 	// will click on the link with the exact linkText if available; if not, on a link containing linkText
