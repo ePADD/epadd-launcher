@@ -1,18 +1,18 @@
 package test;
 
-import cucumber.api.cli.Main;
-import cucumber.api.java.en.And;
-import cucumber.api.java.en.Given;
-import cucumber.api.java.en.Then;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.log4j.Logger;
 import org.openqa.selenium.*;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.ie.InternetExplorerDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -20,12 +20,11 @@ import java.util.concurrent.TimeUnit;
 
 public class StepDefs {
 	public WebDriver driver;
-	public static String totalNumberOfEmails;
 	public static File newScreenshotFolder;
-	public static File newLogsFolder;
-	public static String pID;
-
+	private static Log log = LogFactory.getLog(Main.class);
+	static Properties VARS;
 	public static final Logger logger = Logger.getLogger(Main.class.getName());
+	public static String EPADD_TEST_PROPS_FILE = System.getProperty("user.home") + File.separator + "epadd.test.properties";
 
 	String userHome = System.getProperty("user.home");
 	String opsystem = System.getProperty("os.name");
@@ -35,28 +34,65 @@ public class StepDefs {
 	private Hooks hooks;
 	private String screenshotsDir;
 
-	public StepDefs() {
-		driver = Hooks.driver;
-		hooks = new Hooks();
-		screenshotsDir = hooks.getValue("screenshotsDir");
-		if (screenshotsDir != null)
-			new File(screenshotsDir).mkdirs();
-		logger.info ("Screenshots will be stored in " + screenshotsDir);
-	}
+    public boolean runningOnMac() { return System.getProperty("os.name").startsWith("Mac"); }
 
-	@Given("^I navigate to \"(.*?)\"$")
-	public void openURL(String url) throws Throwable {
+    public StepDefs() {
+		VARS = new Properties();
+
+		File f = new File(EPADD_TEST_PROPS_FILE);
+		if (f.exists() && f.canRead()) {
+			log.info("Reading configuration from: " + EPADD_TEST_PROPS_FILE);
+			try {
+				InputStream is = new FileInputStream(EPADD_TEST_PROPS_FILE);
+				VARS.load(is);
+			} catch (Exception e) {
+				print_exception("Error reading epadd properties file " + EPADD_TEST_PROPS_FILE, e, log);
+			}
+		} else {
+			log.warn("ePADD properties file " + EPADD_TEST_PROPS_FILE + " does not exist or is not readable");
+		}
+
+        hooks = new Hooks();
+        screenshotsDir = (String) VARS.get("screenshotsDir");
+		if (screenshotsDir != null)
+			screenshotsDir = "screenshots";
+
+        if (screenshotsDir != null)
+            new File(screenshotsDir).mkdirs();
+        logger.info ("Screenshots will be stored in " + screenshotsDir);
+    }
+
+    public static String stackTrace(Throwable t)
+    {
+        StringWriter sw = new StringWriter(0);
+        PrintWriter pw = new PrintWriter(sw);
+        t.printStackTrace(pw);
+        pw.close();
+        return sw.getBuffer().toString();
+    }
+
+    public static void print_exception(String message, Throwable t, Log log)
+    {
+        String trace = stackTrace(t);
+        String s = message + "\n" + t.toString() + "\n" + trace;
+        if (log != null)
+            log.warn(s);
+        System.err.println(s);
+    }
+
+	// @Given("^I navigate to \"(.*?)\"$")
+	public void openURL(String url) {
         driver.navigate().to(url);
 	}
 
-	@Given("^I wait for (\\d+) sec$")
+	// @Given("^I wait for (\\d+) sec$")
 	public void waitFor(int time) throws InterruptedException {
 		TimeUnit.SECONDS.sleep(time);
 	}
 
-	@Given("^I enter (.*) into input field with name \"(.*?)\"$")
-	public void enterValueInInputField(String inputValue, String fieldName) throws InterruptedException {
-		inputValue = processValue(inputValue);
+	// @Given("^I enter (.*) into input field with name \"(.*?)\"$")
+	public void enterValueInInputField( String fieldName, String inputValue) throws InterruptedException {
+		inputValue = resolveValue(inputValue);
 		try {
 			WebElement inputField = driver.findElement(By.name(fieldName));
 			inputField.sendKeys(inputValue);
@@ -65,19 +101,19 @@ public class StepDefs {
 		}
 	}
 
-	@Then("I navigate back$")
+	// @Then("I navigate back$")
 	public void navigation() {
 		driver.navigate().back();
 	}
 
-	@Then("I close ePADD$")
+	// @Then("I close ePADD$")
 	public void closeApplication() throws IOException, InterruptedException {
 		if (epaddProcess == null)
 			return;
 		epaddProcess.destroy();
 	}
 
-	@Given("I open ePADD$")
+	// @Given("I open ePADD$")
 	public void openApplication() throws IOException, InterruptedException {
 		// we'll always launch using epadd-standalone.jar
 		String javaBinary = hooks.getValue("javaBinary");
@@ -96,9 +132,9 @@ public class StepDefs {
 		logger.info ("Started ePADD");
 	}
 
-	@Then("CSS element \"(.*)\" should have value (.*)$")
+	// @Then("CSS element \"(.*)\" should have value (.*)$")
 	public void verifyEquals(String selector, String expectedValue) {
-		expectedValue = processValue(expectedValue);
+		expectedValue = resolveValue(expectedValue);
 		String actualText = driver.findElement(By.cssSelector(selector)).getText();
 	    
 		if (!actualText.equals(expectedValue)) {
@@ -109,9 +145,9 @@ public class StepDefs {
 		
 	}
 
-	@Then("CSS element \"([^\"]*)\" should contain (.*)$")
+	// @Then("CSS element \"([^\"]*)\" should contain (.*)$")
 	public void verifyContains(String selector, String expectedValue) {
-		expectedValue = processValue(expectedValue);
+		expectedValue = resolveValue(expectedValue);
 		String actualText = driver.findElement(By.cssSelector(selector)).getText();
 		if (!actualText.contains(expectedValue)) {
 			logger.warn ("ACTUAL text for CSS selector " + selector + ": " + actualText + " EXPECTED TO CONTAIN: " + expectedValue);
@@ -121,7 +157,7 @@ public class StepDefs {
 	}
 
 
-	@Then("CSS element \"([^\"]*)\" should start with a number > 0")
+	// @Then("CSS element \"([^\"]*)\" should start with a number > 0")
 	public void verifyContains(String selector) {
 		String actualText = driver.findElement(By.cssSelector(selector)).getText();
 		actualText = actualText.trim();
@@ -135,40 +171,79 @@ public class StepDefs {
 		logger.info ("Found expected text for CSS selector " + selector + ": " + actualText);
 	}
 
-	@Then("^open browser$")
+	// @Then("^open browser$")
 	public void openBrowser() throws MalformedURLException {
-		hooks.openBrowser();
-	}
+        try {
+            // String consoleOutputFile = this.getValue("browserConsoleOutputFile");
+            // System.setProperty("webdriver.log.file", consoleOutputFile + "-" + this.getValue("browser") + ".txt");
 
-	@Then("^I take full page screenshot called \"(.*?)\"$")
-	public void takeScreenshot(String page) throws Throwable {
+            String browser = (String) VARS.get("browser");
+
+            if (browser == null)
+                browser = "chrome";
+            if ("firefox".equalsIgnoreCase(browser)) {
+                driver = new FirefoxDriver();
+            } else if ("chrome".equalsIgnoreCase(browser)) {
+                if (runningOnMac()) {
+                    String macDriver = (String) VARS.get ("webdriver.chrome.driver");
+                    if (macDriver == null)
+                        macDriver = "/Users/hangal/workspace/epadd-launcher/src/test/resources/chromedriver";
+                    System.setProperty("webdriver.chrome.driver", macDriver);
+                } else {
+                    System.err.println ("WARNING!!!! Chrome driver is only specified for Mac?");
+                }
+                driver = new ChromeDriver();
+            } else if ("ie".equalsIgnoreCase(browser)) {
+                driver = new InternetExplorerDriver();
+            }
+            driver.manage().deleteAllCookies();
+            driver.manage().window().maximize();
+        } catch (Exception e) {
+            print_exception("Error opening browser", e, log);
+        }
+    }
+
+	// @Then("^I take full page screenshot called \"(.*?)\"$")
+	public void takeScreenshot(String page) throws IOException {
 		String timestamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
 		String stamp = timestamp + ".png";
 		Dimension saved = driver.manage().window().getSize();
 //		driver.manage().window().setSize(new Dimension(1280, 2000));
 		File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-		FileUtils.copyFile(scrFile, new File(screenshotsDir + File.separator + hooks.getValue("browser") + "-" + page + "-" + stamp));
+		FileUtils.copyFile(scrFile, new File(screenshotsDir + File.separator + VARS.get("browser") + "-" + page + "-" + stamp));
 //		driver.manage().window().setSize(saved);
 	}
 
-	@Then("I verify that I am on page \"(.*?)\"$")
+	public void visitAndTakeScreenshot(String url) throws IOException, InterruptedException {
+		visitAndTakeScreenshot(url, 1);
+	}
+
+	public void visitAndTakeScreenshot(String url, int waitSecs) throws IOException, InterruptedException {
+        openURL (url);
+        int idx = url.lastIndexOf ("/");
+        String page = (idx >= 0) ? url.substring (idx+1) : url;
+		Thread.sleep (waitSecs * 1000);
+        takeScreenshot(page);
+    }
+
+	// @Then("I verify that I am on page \"(.*?)\"$")
 	public void verifyURL(String expectedURL) {
-		expectedURL = processValue(expectedURL);
+		expectedURL = resolveValue(expectedURL);
 		String currentURL = driver.getCurrentUrl();
 		hooks.verifyElement(currentURL, expectedURL);
 	}
 
 
-	@Given("I find CSS element \"(.*)\" and click on it$")
+	// @Given("I find CSS element \"(.*)\" and click on it$")
 	public void clickOn(String cssSelector) throws InterruptedException {
 		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
 		driver.findElement(By.cssSelector(cssSelector)).click();
 	}
 
-	@Then("I find CSS element \"(.*)\" and verify that it contains \"(.*)\"$")
+	// @Then("I find CSS element \"(.*)\" and verify that it contains \"(.*)\"$")
 	public void verifyCSSContains(String cssSelector, String expectedText) throws InterruptedException {
-		cssSelector = processValue(cssSelector);
-		expectedText = processValue(expectedText);
+		cssSelector = resolveValue(cssSelector);
+		expectedText = resolveValue(expectedText);
 		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
 		String elementText = driver.findElement(By.cssSelector(cssSelector)).getText();
 		if (!elementText.contains(expectedText)) {
@@ -183,10 +258,10 @@ public class StepDefs {
 	// I click on "Search" --> searches button, link, td tags with this text (or their sub-elements), in that order
 	// or
 	// I click on button "Search"
-	@Given("I click on (.*) *\"(.*?)\"$")
+	// @Given("I click on (.*) *\"(.*?)\"$")
 	public void clickOn(String elementType, String linkText) throws InterruptedException {
 		elementType = elementType.trim(); // required because linkText might come as "button " due to regex matching above
-		linkText = processValue(linkText);
+		linkText = resolveValue(linkText);
 		linkText = linkText.toLowerCase();
 		WebElement e = null;
 
@@ -224,16 +299,16 @@ public class StepDefs {
 			// color the border red of the selected element to make it easier to understand what is happening
 			((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true); arguments[0].style.border = '2px solid red';", e);
 			logger.info ("Clicking on (" + e.getTagName() + ") containing " + linkText);
-			waitFor(5);
+			waitFor(2);
 			e.click(); // seems to be no way of getting text of a link through CSS
-			waitFor(5); // always wait for 1 sec after click
+			waitFor(2); // always wait for 1 sec after click
 		} else
 			throw new RuntimeException ("Unable to find an element to click on: (" + elementType + ") " + linkText + " page: " + driver.getCurrentUrl());
 	}
 
-	@Then("^I wait for the page (.*?) to be displayed within (\\d+) seconds$")
-	public void waitForPageToLoad(String url, int time) throws Throwable {
-		url = processValue(url);
+	// @Then("^I wait for the page (.*?) to be displayed within (\\d+) seconds$")
+	public void waitForPageToLoad(String url, int time) {
+		url = resolveValue(url);
 		long startMillis = System.currentTimeMillis();
 		WebDriverWait wait = new WebDriverWait(driver, time);
 		try {
@@ -246,9 +321,9 @@ public class StepDefs {
 	}
 
 	// waits for button containing the given buttonText to appear within time seconds
-	@Then("^I wait for button (.*?) to be displayed within (\\d+) seconds$")
-	public void waitForButton(String buttonText, int time) throws Throwable {
-		buttonText = processValue(buttonText);
+	// @Then("^I wait for button (.*?) to be displayed within (\\d+) seconds$")
+	public void waitForButton(String buttonText, int time) {
+		buttonText = resolveValue(buttonText);
 		
 		long startMillis = System.currentTimeMillis();
 		WebDriverWait wait = new WebDriverWait(driver, time);
@@ -265,7 +340,7 @@ public class StepDefs {
 		logger.info ("Button " + buttonText + " clickable in " + (System.currentTimeMillis() - startMillis) + "ms");
 	}
 
-	@Given("I find xpath element \"(.*)\" and click on it$")
+	// @Given("I find xpath element \"(.*)\" and click on it$")
 	public void clickOnElementHavingXpath(String xpathLocator) {
 		//hooks.waitForElement(By.xpath(xpathLocator));
 		driver.findElement(By.xpath(xpathLocator)).click();
@@ -281,7 +356,7 @@ public class StepDefs {
 		return n;
 	}
 
-	@Then("^I check for ([<>]*) *(\\d+) messages on the page$")
+	// @Then("^I check for ([<>]*) *(\\d+) messages on the page$")
 	public void checkMessagesOnBrowsePage(String relation, int nExpectedMessages) {
 		relation = relation.trim();
 		int nActualMessages = nMessagesOnBrowsePage();
@@ -295,7 +370,7 @@ public class StepDefs {
 			throw new RuntimeException("Expected <" + nExpectedMessages + " found " + nActualMessages);
 	}
 
-	@Then("I check for ([<>]*) *(\\d+) highlights on the page")
+	// @Then("I check for ([<>]*) *(\\d+) highlights on the page")
 	public void checkHighlights(String relation, int nExpectedHighlights) {
 		Collection<WebElement> highlights = driver.findElements(By.cssSelector(".muse-highlight"));
 		highlights.addAll(driver.findElements(By.cssSelector(".hilitedTerm"))); // could be either of these classes used for highlighting
@@ -310,7 +385,7 @@ public class StepDefs {
 			throw new RuntimeException("Expected <" + nExpectedHighlights + " found " + nHighlights);
 	}
 
-	@And("I check that \"(.*)\" is highlighted")
+	// @And("I check that \"(.*)\" is highlighted")
 	public void checkHighlighted(String termToBeHighighted) {
 		Collection<WebElement> highlights = driver.findElements(By.cssSelector(".muse-highlight"));
 		highlights.addAll(driver.findElements(By.cssSelector(".hilitedTerm"))); // could be either of these classes used for highlighting
@@ -325,7 +400,7 @@ public class StepDefs {
 	}
 
 		// check for some messages in another tab, then close it
-	@Then("some messages should be displayed in another tab$")
+	// @Then("some messages should be displayed in another tab$")
 	public void someMessagesShouldBeDisplayed() throws InterruptedException {
 		String parentWindow = driver.getWindowHandle();
 		Set<String> handles = driver.getWindowHandles();
@@ -344,7 +419,7 @@ public class StepDefs {
 		driver.switchTo().window(parentWindow);
 	}
 
-	@Given("I switch to the \"(.*)\" tab$")
+	// @Given("I switch to the \"(.*)\" tab$")
 	public void switchToTab(String title) throws InterruptedException {
 		String parentWindow = driver.getWindowHandle();
 		Set<String> handles = driver.getWindowHandles();
@@ -362,7 +437,7 @@ public class StepDefs {
 		driver.switchTo().window(parentWindow);
 	}
 
-	@Given("I close tab")
+	// @Given("I close tab")
 	public void closeTab() throws InterruptedException {
 		driver.close();
 		// need to explicitly switch to last window, otherwise driver will stop working
@@ -372,7 +447,7 @@ public class StepDefs {
 		}
 	}
 
-	@Given("I switch to the previous tab")
+	// @Given("I switch to the previous tab")
 	public void switchTabBack() throws InterruptedException {
 		if (tabStack.size() < 1) {
 			logger.warn ("Warning: trying to pop tab stack when it is empty!");
@@ -383,7 +458,7 @@ public class StepDefs {
 		switchToTab (lastWindow);
 	}
 
-	@Given("I mark all messages \"Do not transfer\"")
+	// @Given("I mark all messages \"Do not transfer\"")
 	public void markDNT() throws InterruptedException {
 		WebElement e = driver.findElement(By.id("doNotTransfer"));
 
@@ -395,13 +470,13 @@ public class StepDefs {
 		driver.findElement(By.id("applyToAll")).click();
 	}
 
-	@Given("I set dropdown \"(.*?)\" to \"(.*?)\"$")
+	// @Given("I set dropdown \"(.*?)\" to \"(.*?)\"$")
 	public void dropDownSelection(String cssSelector, String value) {
 		Select select = new Select(driver.findElement(By.cssSelector(cssSelector)));
 		select.selectByVisibleText(value);
 	}
 
-	@Then("I add \"(.*)\" to the address book$")
+	// @Then("I add \"(.*)\" to the address book$")
 	public void editAddressBook(String newName) throws InterruptedException {
 		WebElement e = driver.findElement(By.cssSelector("#text"));
 		e.click();
@@ -422,25 +497,25 @@ public class StepDefs {
 		e.sendKeys(Keys.ENTER);
 	}
 
-	@Then("I confirm the alert$")
+	// @Then("I confirm the alert$")
 	public void handleAlert() throws InterruptedException {
 		Thread.sleep(5000);
 		Alert alert = driver.switchTo().alert();
 		alert.accept();
 	}
 
-	@Then("I verify the folder (.*) does not exist$")
+	// @Then("I verify the folder (.*) does not exist$")
 	public void checkFolderDoesNotExist(String folderName) throws InterruptedException, IOException {
-		folderName = processValue(folderName);
+		folderName = resolveValue(folderName);
 		if (new File(folderName).exists()) {
 			throw new RuntimeException ("Folder " + folderName + " is not expected to exist, but it does!");
 		}
 		logger.info ("Good, folder " + folderName + " does not exist");
 	}
 
-	@Then("I verify the folder (.*) exists$")
+	// @Then("I verify the folder (.*) exists$")
 	public void checkFolderExists(String folderName) throws InterruptedException, IOException {
-		folderName = processValue(folderName);
+		folderName = resolveValue(folderName);
 		if (!new File(folderName).exists()) {
 			throw new RuntimeException ("Folder " + folderName + " is expected to exist, but it does not!");
 		}
@@ -449,7 +524,7 @@ public class StepDefs {
 
 	/////////////////////// REVIEWED UPTIL HERE - SGH /////////////////////////////////////////////
 
-	@Then("copy files$")
+	// @Then("copy files$")
 	public void copyFiles() throws InterruptedException {
 		// System.out.println ("inside copy files function");
 		Hooks hooks = new Hooks();
@@ -504,7 +579,7 @@ public class StepDefs {
 
 
 
-	@Then("^create folder$")
+	// @Then("^create folder$")
 	public void createFolder() throws Throwable {
 		Hooks hooks = new Hooks();
 		File screenshotFolder = null;
@@ -559,7 +634,7 @@ public class StepDefs {
 		}
 	}
 
-	@And("I switch to Job page and verify highlighted text having css \"(.*?)\" and email number \"(.*?)\"$")
+	// @And("I switch to Job page and verify highlighted text having css \"(.*?)\" and email number \"(.*?)\"$")
 	public void verifyJobPage(String highlightedTextLocator, String emailNumberLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
 		String parentWindow = driver.getWindowHandle();
@@ -581,7 +656,7 @@ public class StepDefs {
 		driver.switchTo().window(parentWindow);
 	}
 
-	@Then("I upload the image having id \"(.*?)\"$")
+	// @Then("I upload the image having id \"(.*?)\"$")
 	public void uploadImage(String imageLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.id(imageLocator));
@@ -598,7 +673,7 @@ public class StepDefs {
 
 	}
 
-	@Then("I verify the updated profile text having css \"(.*?)\"$")
+	// @Then("I verify the updated profile text having css \"(.*?)\"$")
 	public void verifyUpdatedProfile(String profileLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.cssSelector(profileLocator));
@@ -606,7 +681,7 @@ public class StepDefs {
 		hooks.verifyElementPresence(profileName, hooks.getValue("newUserName"));
 	}
 
-	@Then("I revert back the correspondent values in id \"(.*?)\"$")
+	// @Then("I revert back the correspondent values in id \"(.*?)\"$")
 	public void revertCorrespondentsValues(String addressBookLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.id(addressBookLocator));
@@ -617,7 +692,7 @@ public class StepDefs {
 		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.BACK_SPACE);
 	}
 
-	@Then("I verify the profile text having css \"(.*?)\" has reverted$")
+	// @Then("I verify the profile text having css \"(.*?)\" has reverted$")
 	public void verifyRevertedProfile(String profileLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.cssSelector(profileLocator));
@@ -625,20 +700,20 @@ public class StepDefs {
 		hooks.verifyElement(profileName, hooks.getValue("achieverName"));
 	}
 
-	@And("I verify the name \"(.*?)\" field on email source page$")
+	// @And("I verify the name \"(.*?)\" field on email source page$")
 	public void verifyEmailSourcePage(String textfieldLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.name(textfieldLocator));
 	}
 
-	@And("I provide from date in textfield having id \"(.*?)\"$")
+	// @And("I provide from date in textfield having id \"(.*?)\"$")
 	public void fromDateValue(String dateLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.name(dateLocator));
 		driver.findElement(By.id(dateLocator)).sendKeys(hooks.getValue("fromDate"));
 	}
 
-	@And("I provide to date in textfield having id \"(.*?)\"$")
+	// @And("I provide to date in textfield having id \"(.*?)\"$")
 	public void toDateValue(String dateLocator) throws InterruptedException {
 		Hooks hooks = new Hooks();
 		hooks.waitForElement(By.name(dateLocator));
@@ -646,12 +721,12 @@ public class StepDefs {
 	}
 
 	// if the value is <abc> then we read the value of property abc in the hook. otherwise we use it as is.
-	public String processValue(String s) {
+	public String resolveValue(String s) {
 		if (s == null)
 			return null;
 		s = s.trim(); // strip spaces before and after
 		if (s.startsWith("<") && s.endsWith(">"))
-			s = hooks.getValue(s.substring(1, s.length()-1));
+			s = (String) VARS.get(s.substring(1, s.length()-1));
 		if (s.startsWith("\"") && s.endsWith("\"") && s.length() >= 2) // strip quotes -- if "abc", simply make it abc
 			s = s.substring(1, s.length()-1);
 		return s;

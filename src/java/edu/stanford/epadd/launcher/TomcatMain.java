@@ -865,14 +865,11 @@ static class ShutdownThread extends Thread {
 				// launch a browser here
 				try {
 					launchBrowser(BASE_URL);
-
 				} catch (Exception e) {
 					out.println ("Warning: Unable to launch browser due to exception (use the -n option to prevent ePADD from trying to launch a browser):");
 					e.printStackTrace(out);
 				}
 			}
-
-
 		}
 		else
 		{
