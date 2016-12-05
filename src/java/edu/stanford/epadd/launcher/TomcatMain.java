@@ -252,6 +252,7 @@ public class TomcatMain {
 		options.addOption( "dg", "debug-groups", false, "turn debug messages on for groups");
 		options.addOption( "sp", "start-page", true, "start page");
 		options.addOption( "n", "no-browser-open", false, "no browser open");
+        options.addOption( "t", "test", false, "run self tests (<HOME_DIR>/epadd.test.properties should be configured)");
 	//	options.addOption( "ns", "no-shutdown", false, "no auto shutdown");
 		return options;
 	}
@@ -365,16 +366,6 @@ public class TomcatMain {
 	    Options options = getOpt();
 	    CommandLineParser parser = new PosixParser();
 	    CommandLine cmd = parser.parse(options, args);
-
-		if (cmd.hasOption ("test")) {
-			try {
-				Tester.main(args);
-			} catch (Exception e) {
-				err.println ("Exception running self-test: " + e);
-				System.exit (1);
-			}
-			System.exit (0);
-		}
 
 	    if (cmd.hasOption("help"))
 		{
@@ -786,6 +777,16 @@ static class ShutdownThread extends Thread {
 
 	public static void main (String args[]) throws Exception
 	{
+        if (args.length > 0 && "--test".equals (args[0])) {
+            try {
+                Tester.main(args);
+            } catch (Exception e) {
+                err.println ("Exception running self-test: " + e);
+                System.exit (1);
+            }
+            System.exit (0);
+        }
+
 		readConfigFile(); // should be read first because it reads epadd mode etc.
 		// IS_DISCOVERY_MODE should be set up here
 

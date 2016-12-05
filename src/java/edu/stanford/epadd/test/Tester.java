@@ -3,6 +3,7 @@ package edu.stanford.epadd.test;
 import org.apache.commons.cli.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.xerces.impl.xpath.XPath;
 import org.openqa.selenium.WebDriver;
 
 import java.io.*;
@@ -30,6 +31,7 @@ public class Tester {
         options.addOption( "ai", "import", false, "check appraisal import");
         options.addOption( "vap", "visit-all-pages", false, "visit all pages and check that they are alive (appraisal mode)");
         options.addOption( "si", "set-images", false, "set archive images");
+        options.addOption( "t", "test", false, "self-test mode");
 
         options.addOption( "b", "browse", false, "check browse (appraisal mode)");
         options.addOption( "fl", "flags", false, "check flags (appraisal)");
@@ -264,6 +266,11 @@ public class Tester {
         browser.verifyContains (".profile-text", "Peter Chan");
     }
 
+    public void checkAppraisalExport() {
+        String appraisalExportDir = StepDefs.BASE_DIR + File.separator + "appraisal-export";
+        new File(appraisalExportDir).mkdirs();
+    }
+
     public void doIt(String args[]) throws IOException, InterruptedException, ParseException {
         Options options = getOpt();
         CommandLineParser parser = new PosixParser();
@@ -287,6 +294,7 @@ public class Tester {
         checkSensitiveMessages();
         checkSearch();
         checkQueryGenerator();
+        checkAppraisalExport();
 
         if (cmd.hasOption("visit-all-pages")) {
             // visit all pages, take screenshot

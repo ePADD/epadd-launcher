@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit;
 
 public class StepDefs {
     private WebDriver driver;
-    private static String BASE_DIR;
+    public static String BASE_DIR;
     private static String BROWSER_NAME;
 
     private static String DEFAULT_BASE_DIR = System.getProperty ("user.home") + File.separator + "epadd-test";
