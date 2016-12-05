@@ -14,6 +14,8 @@ import java.io.*;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 
+import static org.apache.xml.serializer.utils.Utils.messages;
+
 /**
  * Created by hangal on 11/29/16.
  */
@@ -189,6 +191,48 @@ public class Tester {
         return options;
     }
 
+    public void checkSensitiveMessages() throws InterruptedException {
+        test.openURL(BASE_URL + "browse-top");
+        test.clickOn("Sensitive messages");
+        test.checkMessagesOnBrowsePage(">", 7);
+        test.checkHighlights (">", 0);
+        test.navigateBack();
+    }
+
+    public void checkLexicons() throws InterruptedException, IOException {
+        test.openURL(BASE_URL + "browse-top");
+        test.clickOn ("Lexicon Search");
+        test.waitFor (2);
+        test.verifyContains("span.field-value", "Lexicon Hits");
+        test.waitFor (2);
+        test.clickOn ("View/Edit Lexicon");
+        test.verifyURL("/epadd/edit-lexicon?lexicon=general");
+        test.waitFor(2);
+        test.navigateBack();
+
+        // graph
+        test.clickOn ("Go To Graph View");
+        test.takeScreenshot("lexicon-graph");
+        test.navigateBack();
+        test.waitFor(2);
+    }
+
+    /** currently checks do not transfer only */
+    public void checkFlags() throws InterruptedException {
+        test.openURL(BASE_URL + "browse-top");
+        test.clickOn ("Lexicon Search");
+        test.dropDownSelection ("#lexiconName", "Sensitive");
+        test.clickOn ("Health");
+        test.switchToTab ("health");
+        test.waitFor (5);
+        test.checkMessagesOnBrowsePage("", 393);
+        test.markDNT();
+        test.closeTab();
+        test.clickOn ("Export");
+        test.clickOn ("Do not transfer");
+        test.verifyStartsWithNumberGT0("span.field-value");
+    }
+
     public void doIt(String args[]) throws IOException, InterruptedException, ParseException {
         Options options = getOpt();
         CommandLineParser parser = new PosixParser();
@@ -202,9 +246,12 @@ public class Tester {
             appraisalImport();
         }
 
+        checkLexicons();
+        checkFlags();
         basicChecks();
         checkCorrespondents();
         checkAttachments();
+        checkSensitiveMessages();
 
         if (cmd.hasOption("visit-all-pages")) {
             // visit all pages, take screenshot

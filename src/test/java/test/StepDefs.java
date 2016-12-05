@@ -12,6 +12,7 @@ import org.openqa.selenium.ie.InternetExplorerDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.testng.Assert;
 
 import java.io.*;
 import java.net.MalformedURLException;
@@ -179,7 +180,7 @@ public class StepDefs {
 
 
 	// @Then("CSS element \"([^\"]*)\" should start with a number > 0")
-	public void verifyContains(String selector) {
+	public void verifyStartsWithNumberGT0(String selector) {
 		String actualText = driver.findElement(By.cssSelector(selector)).getText();
 		actualText = actualText.trim();
 		char ch = actualText.charAt(0);
@@ -257,9 +258,9 @@ public class StepDefs {
 	public void verifyURL(String expectedURL) {
 		expectedURL = resolveValue(expectedURL);
 		String currentURL = driver.getCurrentUrl();
-		hooks.verifyElement(currentURL, expectedURL);
+		if (!currentURL.contains(expectedURL))
+			throw new RuntimeException("Expected URL: " + expectedURL + " actual URL: " + currentURL);
 	}
-
 
 	// @Given("I find CSS element \"(.*)\" and click on it$")
 	public void clickOnCSS(String cssSelector) throws InterruptedException {
@@ -379,7 +380,6 @@ public class StepDefs {
 
 	private int nMessagesOnBrowsePage() {
 		String num = driver.findElement(By.id("pageNumbering")).getText();
-		System.out.println("$$$$$$$$$$$$$$$$$$$$$"+num);
 		// num will be "x/y", e.g. something like 123/312. Extract the "312" part of it
 		String totalNumberOfEmails = num.substring(num.indexOf("/")).replace("/", "");
 		int n = -1;
@@ -391,7 +391,6 @@ public class StepDefs {
 	public void checkMessagesOnBrowsePage(String relation, int nExpectedMessages) {
 		relation = relation.trim();
 		int nActualMessages = nMessagesOnBrowsePage();
-		System.out.println("$$$$$$$$$$$$$$"+nActualMessages);
 		logger.info ("checking for " + relation + " " + nExpectedMessages + " messages, got " + nActualMessages);
 		if ("".equals(relation) && !(nActualMessages == nExpectedMessages))
 			throw new RuntimeException("Expected " + nExpectedMessages + " found " + nActualMessages);
@@ -452,12 +451,17 @@ public class StepDefs {
 
 	// @Given("I switch to the \"(.*)\" tab$")
 	public void switchToTab(String title) throws InterruptedException {
+        title = title.toLowerCase();
 		String parentWindow = driver.getWindowHandle();
 		Set<String> handles = driver.getWindowHandles();
 		for (String windowHandle : handles) {
 			if (!windowHandle.equals(parentWindow)) {
 				driver.switchTo().window(windowHandle);
-				if (title.equals(driver.getTitle())) {
+                String tabTitle = driver.getTitle();
+                if (tabTitle == null)
+                    continue;
+                tabTitle = tabTitle.toLowerCase();
+				if (title.equals(tabTitle)) {
 					tabStack.push(parentWindow);
 					return;
 				}
@@ -502,9 +506,12 @@ public class StepDefs {
 	}
 
 	// @Given("I set dropdown \"(.*?)\" to \"(.*?)\"$")
-	public void dropDownSelection(String cssSelector, String value) {
-		Select select = new Select(driver.findElement(By.cssSelector(cssSelector)));
-		select.selectByVisibleText(value);
+	public void dropDownSelection(String cssSelector, String value) throws InterruptedException {
+        WebElement element = driver.findElement(By.cssSelector(cssSelector));
+        ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true); arguments[0].style.border = '2px solid red';", element);
+		Select select = new Select(element);
+        waitFor (2);
+        select.selectByVisibleText(value);
 	}
 
 	// @Then("I add \"(.*)\" to the address book$")
