@@ -18,6 +18,7 @@ package edu.stanford.epadd.launcher;
 import edu.stanford.ejalbert.BrowserLauncher;
 import edu.stanford.ejalbert.exception.BrowserLaunchingInitializingException;
 import edu.stanford.ejalbert.exception.UnsupportedOperatingSystemException;
+import edu.stanford.epadd.test.Tester;
 import org.apache.catalina.Context;
 import org.apache.catalina.Session;
 import org.apache.catalina.startup.Tomcat;
@@ -364,6 +365,17 @@ public class TomcatMain {
 	    Options options = getOpt();
 	    CommandLineParser parser = new PosixParser();
 	    CommandLine cmd = parser.parse(options, args);
+
+		if (cmd.hasOption ("test")) {
+			try {
+				Tester.main(args);
+			} catch (Exception e) {
+				err.println ("Exception running self-test: " + e);
+				System.exit (1);
+			}
+			System.exit (0);
+		}
+
 	    if (cmd.hasOption("help"))
 		{
 		    HelpFormatter formatter = new HelpFormatter();

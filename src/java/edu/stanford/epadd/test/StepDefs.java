@@ -1,4 +1,4 @@
-package test;
+package edu.stanford.epadd.test;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
@@ -12,7 +12,6 @@ import org.openqa.selenium.ie.InternetExplorerDriver;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
-import org.testng.Assert;
 
 import java.io.*;
 import java.net.MalformedURLException;
@@ -21,23 +20,21 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class StepDefs {
-	public WebDriver driver;
-    public static String BASE_DIR;
-    public static String BROWSER;
+    private WebDriver driver;
+    private static String BASE_DIR;
+    private static String BROWSER_NAME;
 
-    public static String DEFAULT_BASE_DIR = System.getProperty ("user.home") + File.separator + "epadd-test";
-	public static File newScreenshotFolder;
+    private static String DEFAULT_BASE_DIR = System.getProperty ("user.home") + File.separator + "epadd-test";
+    private static File newScreenshotFolder;
 	private static Log log = LogFactory.getLog(Tester.class);
 	static Properties VARS;
-	public static final Logger logger = Logger.getLogger(Tester.class.getName());
-	public static String EPADD_TEST_PROPS_FILE = System.getProperty("user.home") + File.separator + "epadd.test.properties";
+    private static final Logger logger = Logger.getLogger(Tester.class.getName());
+    private static String EPADD_TEST_PROPS_FILE = System.getProperty("user.home") + File.separator + "epadd.test.properties";
 
-	String userHome = System.getProperty("user.home");
-	String opsystem = System.getProperty("os.name");
-	Process epaddProcess = null;
-	Stack<String> tabStack = new Stack<>();
+    private String opsystem = System.getProperty("os.name");
+    private Process epaddProcess = null;
+    private Stack<String> tabStack = new Stack<>();
 
-	private Hooks hooks;
 	private String screenshotsDir;
 
     public boolean runningOnMac() { return System.getProperty("os.name").startsWith("Mac"); }
@@ -73,8 +70,6 @@ public class StepDefs {
         new File(screenshotsDir).mkdirs();
 
         logger.info ("Base dir for this test run is: " + BASE_DIR);
-        hooks = new Hooks();
-
     }
 
     public static String stackTrace(Throwable t)
@@ -199,13 +194,13 @@ public class StepDefs {
             // String consoleOutputFile = this.getValue("browserConsoleOutputFile");
             // System.setProperty("webdriver.log.file", consoleOutputFile + "-" + this.getValue("browser") + ".txt");
 
-            BROWSER = VARS.getProperty ("browser");
+            BROWSER_NAME = VARS.getProperty ("browser");
 
-            if (BROWSER == null)
-                BROWSER = "chrome";
-            if ("firefox".equalsIgnoreCase(BROWSER)) {
+            if (BROWSER_NAME == null)
+                BROWSER_NAME = "chrome";
+            if ("firefox".equalsIgnoreCase(BROWSER_NAME)) {
                 driver = new FirefoxDriver();
-            } else if ("chrome".equalsIgnoreCase(BROWSER)) {
+            } else if ("chrome".equalsIgnoreCase(BROWSER_NAME)) {
                 if (runningOnMac()) {
                     String macDriver = VARS.getProperty ("webdriver.chrome.driver");
                     if (macDriver == null)
@@ -217,7 +212,7 @@ public class StepDefs {
                 ChromeOptions options = new ChromeOptions();
                 options.addArguments("--always-authorize-plugins=true"); // to allow flash - c.f. http://stackoverflow.com/questions/28804247/how-to-enable-plugin-in-chrome-browser-through-capabilities-using-web-driver
                 driver = new ChromeDriver(options);
-            } else if ("ie".equalsIgnoreCase(BROWSER)) {
+            } else if ("ie".equalsIgnoreCase(BROWSER_NAME)) {
                 driver = new InternetExplorerDriver();
             }
             driver.manage().deleteAllCookies();
@@ -238,7 +233,7 @@ public class StepDefs {
 		Dimension saved = driver.manage().window().getSize();
 //		driver.manage().window().setSize(new Dimension(1280, 2000));
 		File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-		FileUtils.copyFile(scrFile, new File(screenshotsDir + File.separator + BROWSER + "-" + pageName + "-" + stamp));
+		FileUtils.copyFile(scrFile, new File(screenshotsDir + File.separator + BROWSER_NAME + "-" + pageName + "-" + stamp));
 //		driver.manage().window().setSize(saved);
 	}
 
@@ -522,7 +517,9 @@ public class StepDefs {
 		// on windows, we need home key, on mac, we need cmd-up.
 		// probably doesn't hurt to send both ?
 		// this is not working on chrome-mac currently!
-		e.sendKeys(Keys.HOME);
+		e.sendKeys(Keys.HOME); // home doesn't work on chrome-mac, so also use 30 up arrow keys. needed because focus tends to be somewhere down below.
+        for (int i = 0; i < 50; i++)
+            e.sendKeys(Keys.UP);
 		e.sendKeys(Keys.COMMAND, Keys.UP);
 		e.sendKeys(Keys.chord(Keys.COMMAND, Keys.ARROW_UP));
 		e.sendKeys(Keys.chord(Keys.COMMAND, Keys.ARROW_UP));
@@ -558,204 +555,6 @@ public class StepDefs {
 			throw new RuntimeException ("Folder " + folderName + " is expected to exist, but it does not!");
 		}
 		logger.info ("Good, folder " + folderName + " exists");
-	}
-
-	/////////////////////// REVIEWED UPTIL HERE - SGH /////////////////////////////////////////////
-
-	// @Then("copy files$")
-	public void copyFiles() throws InterruptedException {
-		// System.out.println ("inside copy files function");
-		Hooks hooks = new Hooks();
-		File deliverySource = null;
-		File discoverySource = null;
-		File deliveryDest = null;
-		File discoveryDest = null;
-
-		if (opsystem.contains("Windows")) {
-		//	String driveLocation = userHome.substring(0, userHome.indexOf("\\"));
-			deliverySource = new File(hooks.getValue("deliverySource"));
-			// System.out.println("drivelocation is: " + driveLocation);
-		} else if (opsystem.contains("Linux")) {
-			deliverySource = new File(hooks.getValue("deliverySource"));
-		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-			deliverySource = new File(hooks.getValue("deliverySource"));
-		}
-
-		if (opsystem.contains("Windows")) {
-			deliveryDest = new File(hooks.getValue("deliveryDest"));
-			// System.out.println("userhome is: " + userHome);
-		} else if (opsystem.contains("Linux")) {
-			deliveryDest = new File(hooks.getValue("deliveryDest"));
-		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-			deliveryDest = new File(hooks.getValue("deliveryDest"));
-		}
-
-		if (opsystem.contains("Windows")) {
-	//		String driveLocation = userHome.substring(0, userHome.indexOf("\\"));
-			discoverySource = new File(hooks.getValue("discoverySource"));
-		} else if (opsystem.contains("Linux")) {
-			discoverySource = new File(hooks.getValue("discoverySource"));
-		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-			discoverySource = new File(hooks.getValue("discoverySource"));
-		}
-
-		if (opsystem.contains("Windows")) {
-			discoveryDest = new File(hooks.getValue("discoveryDest"));
-		} else if (opsystem.contains("Linux")) {
-			discoveryDest = new File(hooks.getValue("discoveryDest"));
-		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-			discoveryDest = new File(hooks.getValue("discoveryDest"));
-		}
-
-		try {
-			FileUtils.copyDirectory(deliverySource, deliveryDest);
-			FileUtils.copyDirectory(discoverySource, discoveryDest);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-
-
-	// @Then("^create folder$")
-	public void createFolder() throws Throwable {
-		Hooks hooks = new Hooks();
-		File screenshotFolder = null;
-		File reportFolder = null;
-		File logsFolder = null;
-
-		if (opsystem.contains("Windows")) {
-			screenshotFolder = new File(hooks.getValue("screenshotFolderPath"));
-		} else if (opsystem.contains("Linux")) {
-			screenshotFolder = new File(hooks.getValue("StrScreenShotFolderPath"));
-		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-			screenshotFolder = new File(hooks.getValue("StrScreenShotFolderPath"));
-		}
-
-		if (opsystem.contains("Windows")) {
-			reportFolder = new File(hooks.getValue("reportsFolderPath"));
-		} else if (opsystem.contains("Linux")) {
-			reportFolder = new File(hooks.getValue("reportsFolderPath"));
-		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-			reportFolder = new File(hooks.getValue("reportsFolderPath"));
-		}
-
-		if (opsystem.contains("Windows")) {
-			logsFolder = new File(hooks.getValue("logsFolderPath"));
-		} else if (opsystem.contains("Linux")) {
-			logsFolder = new File(hooks.getValue("logsFolderPath"));
-		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-			logsFolder = new File(hooks.getValue("logsFolderPath"));
-		}
-
-		String timestamp = new SimpleDateFormat("yyyy.MM.dd").format(new Date());
-
-		if (opsystem.contains("Windows")) {
-			newScreenshotFolder = new File(hooks.getValue("screenshotCapturedFolderPath") + timestamp);
-		} else if (opsystem.contains("Linux")) {
-			newScreenshotFolder = new File(hooks.getValue("screenshotCapturedFolderPath") + timestamp);
-		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-			newScreenshotFolder = new File(hooks.getValue("screenshotCapturedFolderPath") + timestamp);
-		}
-
-		if (!screenshotFolder.exists()) {
-			screenshotFolder.mkdirs();
-		}
-		if (!reportFolder.exists()) {
-			reportFolder.mkdirs();
-		}
-		if (!logsFolder.exists()) {
-			logsFolder.mkdirs();
-		}
-		if (!newScreenshotFolder.exists()) {
-			newScreenshotFolder.mkdirs();
-		}
-	}
-
-	// @And("I switch to Job page and verify highlighted text having css \"(.*?)\" and email number \"(.*?)\"$")
-	public void verifyJobPage(String highlightedTextLocator, String emailNumberLocator) throws InterruptedException {
-		Hooks hooks = new Hooks();
-		String parentWindow = driver.getWindowHandle();
-		Set<String> handles = driver.getWindowHandles();
-		for (String windowHandle : handles) {
-			if (!windowHandle.equals(parentWindow)) {
-				driver.switchTo().window(windowHandle);
-				String currentURL = driver.getCurrentUrl();
-				hooks.verifyElement(currentURL, hooks.getValue("jobURL"));
-				String emailNumber = driver.findElement(By.xpath(emailNumberLocator)).getText();
-				hooks.waitForElement(By.cssSelector(highlightedTextLocator));
-				List<WebElement> highlightedText = driver.findElements(By.cssSelector(highlightedTextLocator));
-				hooks.assertElement(highlightedText.get(1).getText(), hooks.getValue("jobPageHighlightedText"));
-				hooks.assertElement(emailNumber.substring(emailNumber.indexOf("/")).replace("/", ""),
-						hooks.getValue("jobPageEmailNumber"));
-				driver.close();
-			}
-		}
-		driver.switchTo().window(parentWindow);
-	}
-
-	// @Then("I upload the image having id \"(.*?)\"$")
-	public void uploadImage(String imageLocator) throws InterruptedException {
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.id(imageLocator));
-
-		if (opsystem.contains("Windows")) {
-			driver.findElement(By.id(imageLocator)).sendKeys(hooks.getValue("imageName"));
-			driver.findElement(By.id(imageLocator)).sendKeys(hooks.getValue("imageName1"));
-			driver.findElement(By.id(imageLocator)).sendKeys(hooks.getValue("imageName2"));
-		} else if (opsystem.contains("Linux")) {
-			driver.findElement(By.id(imageLocator)).sendKeys(hooks.getValue("imageName"));
-		} else if ((opsystem.contains("MacOS")) || (opsystem.contains("OS X"))) {
-			driver.findElement(By.id(imageLocator)).sendKeys(hooks.getValue("imageName"));
-		}
-
-	}
-
-	// @Then("I verify the updated profile text having css \"(.*?)\"$")
-	public void verifyUpdatedProfile(String profileLocator) throws InterruptedException {
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.cssSelector(profileLocator));
-		String profileName = driver.findElement(By.cssSelector(profileLocator)).getText();
-		hooks.verifyElementPresence(profileName, hooks.getValue("newUserName"));
-	}
-
-	// @Then("I revert back the correspondent values in id \"(.*?)\"$")
-	public void revertCorrespondentsValues(String addressBookLocator) throws InterruptedException {
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.id(addressBookLocator));
-		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.CONTROL, Keys.HOME);
-		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.DOWN);
-		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.SHIFT, Keys.END);
-		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.BACK_SPACE);
-		driver.findElement(By.id(addressBookLocator)).sendKeys(Keys.BACK_SPACE);
-	}
-
-	// @Then("I verify the profile text having css \"(.*?)\" has reverted$")
-	public void verifyRevertedProfile(String profileLocator) throws InterruptedException {
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.cssSelector(profileLocator));
-		String profileName = driver.findElement(By.cssSelector(profileLocator)).getText();
-		hooks.verifyElement(profileName, hooks.getValue("achieverName"));
-	}
-
-	// @And("I verify the name \"(.*?)\" field on email source page$")
-	public void verifyEmailSourcePage(String textfieldLocator) throws InterruptedException {
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.name(textfieldLocator));
-	}
-
-	// @And("I provide from date in textfield having id \"(.*?)\"$")
-	public void fromDateValue(String dateLocator) throws InterruptedException {
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.name(dateLocator));
-		driver.findElement(By.id(dateLocator)).sendKeys(hooks.getValue("fromDate"));
-	}
-
-	// @And("I provide to date in textfield having id \"(.*?)\"$")
-	public void toDateValue(String dateLocator) throws InterruptedException {
-		Hooks hooks = new Hooks();
-		hooks.waitForElement(By.name(dateLocator));
-		driver.findElement(By.id(dateLocator)).sendKeys(hooks.getValue("toDate"));
 	}
 
 	// if the value is <abc> then we read the value of property abc in the hook. otherwise we use it as is.
