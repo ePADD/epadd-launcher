@@ -3,12 +3,13 @@ package edu.stanford.epadd.test;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.log4j.Logger;
 import org.openqa.selenium.*;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.ie.InternetExplorerDriver;
+import org.openqa.selenium.interactions.Actions;
+import org.openqa.selenium.support.ui.ExpectedCondition;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -25,16 +26,14 @@ public class StepDefs {
     private static String BROWSER_NAME;
 
     private static String DEFAULT_BASE_DIR = System.getProperty ("user.home") + File.separator + "epadd-test";
-    private static File newScreenshotFolder;
-	private static Log log = LogFactory.getLog(Tester.class);
+	private static Log log = LogFactory.getLog(StepDefs.class);
 	static Properties VARS;
-    private static final Logger logger = Logger.getLogger(Tester.class.getName());
     private static String EPADD_TEST_PROPS_FILE = System.getProperty("user.home") + File.separator + "epadd.test.properties";
 
     private String opsystem = System.getProperty("os.name");
     private Process epaddProcess = null;
     private Stack<String> tabStack = new Stack<>();
-
+    public static String testStatus = "1...2...3", testStatusColor = "rgba(10,140,10,0.8)";
 	private String screenshotsDir;
 
     public boolean runningOnMac() { return System.getProperty("os.name").startsWith("Mac"); }
@@ -69,7 +68,7 @@ public class StepDefs {
         screenshotsDir = BASE_DIR + File.separator + "screenshots";
         new File(screenshotsDir).mkdirs();
 
-        logger.info ("Base dir for this test run is: " + BASE_DIR);
+        log.info ("Base dir for this test run is: " + BASE_DIR);
     }
 
     public static String stackTrace(Throwable t)
@@ -118,6 +117,7 @@ public class StepDefs {
 
 	// @Then("I close ePADD$")
 	public void closeEpadd() throws IOException, InterruptedException {
+        updateTestStatus("Closing ePADD");
 		if (epaddProcess == null)
 			return;
 		epaddProcess.destroy();
@@ -126,12 +126,13 @@ public class StepDefs {
 	// @Given("I open ePADD$")
 	public void openEpadd(String mode) throws IOException, InterruptedException {
 		// we'll always launch using epadd-standalone.jar
+        updateTestStatus("Starting ePADD");
 
 		String errFile = System.getProperty("java.io.tmpdir") + File.separator + "epadd-test.err.txt";
 		String outFile = System.getProperty("java.io.tmpdir") + File.separator + "epadd-test.out.txt";
         String cmd = VARS.getProperty ("cmd");
         if (cmd == null) {
-            log.warn ("Please confirm cmd in epadd.test.properties");
+            log.warn ("Please confirm cmd in " + EPADD_TEST_PROPS_FILE);
             throw new RuntimeException ("no command to start epadd");
         }
 
@@ -142,9 +143,9 @@ public class StepDefs {
 //		ProcessBuilder pb = new ProcessBuilder("java", "-Xmx2g", "-jar", "epadd-standalone.jar", "--no-browser-open");
 		pb.redirectError(new File(errFile));
 		pb.redirectOutput(new File(outFile));
-		logger.info ("Sending epadd output to: " + outFile);
+		log.info ("Sending epadd output to: " + outFile);
 		epaddProcess = pb.start();
-		logger.info ("Started ePADD");
+		log.info ("Started ePADD");
 	}
 
 	// @Then("CSS element \"(.*)\" should have value (.*)$")
@@ -153,10 +154,10 @@ public class StepDefs {
 		String actualText = driver.findElement(By.cssSelector(selector)).getText();
 	    
 		if (!actualText.equals(expectedValue)) {
-			logger.warn ("ACTUAL text for CSS selector " + selector + ": " + actualText + " EXPECTED: " + expectedValue);
+			log.warn ("ACTUAL text for CSS selector " + selector + ": " + actualText + " EXPECTED: " + expectedValue);
 			throw new RuntimeException();
 		}
-		logger.info ("Found expected text for CSS selector " + selector + ": " + actualText);
+		log.info ("Found expected text for CSS selector " + selector + ": " + actualText);
 		
 	}
 
@@ -167,10 +168,10 @@ public class StepDefs {
 		actualText = actualText.toLowerCase();
 		expectedValue = expectedValue.toLowerCase();
 		if (!actualText.contains(expectedValue)) {
-			logger.warn ("ACTUAL text for CSS selector " + selector + ": " + actualText + " EXPECTED TO CONTAIN: " + expectedValue);
+			log.warn ("ACTUAL text for CSS selector " + selector + ": " + actualText + " EXPECTED TO CONTAIN: " + expectedValue);
 			throw new RuntimeException();
 		}
-		logger.info ("Found expected text for CSS selector " + selector + ": " + actualText);
+		log.info ("Found expected text for CSS selector " + selector + ": " + actualText);
 	}
 
 
@@ -182,10 +183,10 @@ public class StepDefs {
 		if (Character.isDigit(ch) && ch > '0') { // the number can't start with 0
 			// its ok
 		} else {
-			logger.warn ("ACTUAL text " + actualText + " was expected to start with a number > 0");
+			log.warn ("ACTUAL text " + actualText + " was expected to start with a number > 0");
 			throw new RuntimeException();
 		}
-		logger.info ("Found expected text for CSS selector " + selector + ": " + actualText);
+		log.info ("Found expected text for CSS selector " + selector + ": " + actualText);
 	}
 
 	// @Then("^open browser$")
@@ -228,6 +229,8 @@ public class StepDefs {
 
 	// @Then("^I take full page screenshot called \"(.*?)\"$")
 	public void takeScreenshot(String pageName) throws IOException {
+        String savedStatus = testStatus;
+        updateTestStatus("Taking screenshot: " + pageName);
 		String timestamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss").format(new Date());
 		String stamp = timestamp + ".png";
 		Dimension saved = driver.manage().window().getSize();
@@ -235,6 +238,7 @@ public class StepDefs {
 		File scrFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
 		FileUtils.copyFile(scrFile, new File(screenshotsDir + File.separator + BROWSER_NAME + "-" + pageName + "-" + stamp));
 //		driver.manage().window().setSize(saved);
+        updateTestStatus(savedStatus);
 	}
 
 	public void visitAndTakeScreenshot(String url) throws IOException, InterruptedException {
@@ -251,35 +255,40 @@ public class StepDefs {
 
 	// @Then("I verify that I am on page \"(.*?)\"$")
 	public void verifyURL(String expectedURL) {
-		expectedURL = resolveValue(expectedURL);
 		String currentURL = driver.getCurrentUrl();
 		if (!currentURL.contains(expectedURL))
 			throw new RuntimeException("Expected URL: " + expectedURL + " actual URL: " + currentURL);
-	}
-
-	// @Given("I find CSS element \"(.*)\" and click on it$")
-	public void clickOnCSS(String cssSelector) throws InterruptedException {
-		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
-		driver.findElement(By.cssSelector(cssSelector)).click();
-	}
-
-	// @Then("I find CSS element \"(.*)\" and verify that it contains \"(.*)\"$")
-	public void verifyCSSContains(String cssSelector, String expectedText) throws InterruptedException {
-		cssSelector = resolveValue(cssSelector);
-		expectedText = resolveValue(expectedText);
-		// this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
-		String elementText = driver.findElement(By.cssSelector(cssSelector)).getText();
-		if (!elementText.contains(expectedText)) {
-			throw new RuntimeException("Expected CSS element " + cssSelector + " to contain " + expectedText + " but it has " + elementText);
-		}
-		logger.info("CSS element " + cssSelector + " has value " + elementText + " and contains " + expectedText);
 	}
 
 	public void clickOn(String linkText) throws InterruptedException {
 		clickOn ("", linkText);
 	}
 
-	// will click on the link with the exact linkText if available; if not, on a link containing linkText
+	public void enterPrompt (String value) {
+        Alert alert = driver.switchTo().alert();
+        alert.sendKeys(value);
+        alert.accept();
+    }
+
+    // @Given("I find CSS element \"(.*)\" and click on it$")
+    public void clickOnCSS(String cssSelector) throws InterruptedException {
+        // this could hit any element with the text! e.g. a button, an a tag, or even a td tag!
+        String prevURL = driver.getCurrentUrl();
+        waitFor (2);
+        WebElement e = driver.findElement(By.cssSelector(cssSelector));
+        if (e == null) {
+            log.warn("ERROR: CSS element " + cssSelector + " not found!");
+            throw new RuntimeException();
+        }
+        e.click();
+        waitFor (2);
+
+        String newURL = driver.getCurrentUrl();
+        if (!prevURL.equals(newURL))
+            updateTestStatus(); // new page, so status has to be refreshed on it
+    }
+
+    // will click on the link with the exact linkText if available; if not, on a link containing linkText
 	// linkText is case insensitive
 	// can use as:
 	// I click on "Search" --> searches button, link, td tags with this text (or their sub-elements), in that order
@@ -287,6 +296,8 @@ public class StepDefs {
 	// I click on button "Search"
 	// @Given("I click on (.*) *\"(.*?)\"$")
 	public void clickOn(String elementType, String linkText) throws InterruptedException {
+        // testStatus = "Clicking on" + ((elementType != null) ? elementType + " " : "") + linkText;
+
 		elementType = elementType.trim(); // required because linkText might come as "button " due to regex matching above
 		linkText = resolveValue(linkText);
 		linkText = linkText.toLowerCase();
@@ -321,30 +332,55 @@ public class StepDefs {
 			}
 		}
 
-		// ok, we we have an element to click on?
+        String prevURL = driver.getCurrentUrl();
+
+        // ok, we have an element to click on?
 		if (e != null) {
 			// color the border red of the selected element to make it easier to understand what is happening
 			((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true); arguments[0].style.border = '2px solid red';", e);
-			logger.info ("Clicking on (" + e.getTagName() + ") containing " + linkText);
-			waitFor(2);
+			log.info ("Clicking on (" + e.getTagName() + ") containing " + linkText);
+			waitFor(1);
+            Actions actions = new Actions (driver);
+            actions.moveToElement(e);
+            waitFor (1);
 			e.click(); // seems to be no way of getting text of a link through CSS
-			waitFor(2); // always wait for 1 sec after click
-		} else
+			waitFor(1); // always wait for 1 sec after click
+
+            // wait for next page to load by checking its readyState, up to 30 secs
+            new WebDriverWait(driver, 30).until((ExpectedCondition<Boolean>) wd ->
+                    ((JavascriptExecutor) wd).executeScript("return document.readyState").equals("complete")); // from http://stackoverflow.com/questions/15122864/selenium-wait-until-document-is-ready
+
+            String newURL = driver.getCurrentUrl();
+            if (!prevURL.equals(newURL))
+                updateTestStatus();
+        } else
 			throw new RuntimeException ("Unable to find an element to click on: (" + elementType + ") " + linkText + " page: " + driver.getCurrentUrl());
 	}
 
-	// @Then("^I wait for the page (.*?) to be displayed within (\\d+) seconds$")
+    void updateTestStatus() {
+        updateTestStatus(testStatus);
+    }
+
+    void updateTestStatus(String status) {
+        testStatus = status;
+        String script = "var e123 = document.getElementById('test-status'); if (e123 != null) { e123.remove(); }";
+        script +=  "document.body.innerHTML += '<div id=\"test-status\" style=\"font-family:sans-serif,serif;position:fixed;bottom:0px; width:100%; text-align:center; font-size:18px; background-color:" + testStatusColor + ";color:white;border-top: solid 2px black; padding: 5px;\">Test status: " + testStatus + "</div>';";
+        try { ((JavascriptExecutor) driver).executeScript(script); } catch (Exception e) { }
+    }
+
+    // @Then("^I wait for the page (.*?) to be displayed within (\\d+) seconds$")
 	public void waitForPageToLoad(String url, int time) {
 		url = resolveValue(url);
 		long startMillis = System.currentTimeMillis();
 		WebDriverWait wait = new WebDriverWait(driver, time);
 		try {
 			wait.until(ExpectedConditions.urlMatches(url));
-		} catch (org.openqa.selenium.TimeoutException e) {
+            updateTestStatus();
+        } catch (org.openqa.selenium.TimeoutException e) {
 			throw new RuntimeException (url + " did not open in " + time + " seconds. Exception occurred: ", e);
 		}
 
-		logger.info ("Page " + url + " loaded in " + (System.currentTimeMillis() - startMillis) + "ms");
+		log.info ("Page " + url + " loaded in " + (System.currentTimeMillis() - startMillis) + "ms");
 	}
 
 	// waits for button containing the given buttonText to appear within time seconds
@@ -364,13 +400,7 @@ public class StepDefs {
 			throw new RuntimeException ("Button text" + buttonText + " was not found in " + time + " seconds. Exception occured: ", e);
 		}
 
-		logger.info ("Button " + buttonText + " clickable in " + (System.currentTimeMillis() - startMillis) + "ms");
-	}
-
-	// @Given("I find xpath element \"(.*)\" and click on it$")
-	public void clickOnElementHavingXpath(String xpathLocator) {
-		//hooks.waitForElement(By.xpath(xpathLocator));
-		driver.findElement(By.xpath(xpathLocator)).click();
+		log.info ("Button " + buttonText + " clickable in " + (System.currentTimeMillis() - startMillis) + "ms");
 	}
 
 	private int nMessagesOnBrowsePage() {
@@ -386,7 +416,7 @@ public class StepDefs {
 	public void checkMessagesOnBrowsePage(String relation, int nExpectedMessages) {
 		relation = relation.trim();
 		int nActualMessages = nMessagesOnBrowsePage();
-		logger.info ("checking for " + relation + " " + nExpectedMessages + " messages, got " + nActualMessages);
+		log.info ("checking for " + relation + " " + nExpectedMessages + " messages, got " + nActualMessages);
 		if ("".equals(relation) && !(nActualMessages == nExpectedMessages))
 			throw new RuntimeException("Expected " + nExpectedMessages + " found " + nActualMessages);
 		if (">".equals(relation) && !(nActualMessages > nExpectedMessages))
@@ -401,7 +431,7 @@ public class StepDefs {
 		highlights.addAll(driver.findElements(By.cssSelector(".hilitedTerm"))); // could be either of these classes used for highlighting
 		int nHighlights = highlights.size();
 
-		logger.info ("checking for " + relation + " " + nExpectedHighlights + " messages, got " + nHighlights);
+		log.info ("checking for " + relation + " " + nExpectedHighlights + " messages, got " + nHighlights);
 		if ("".equals(relation) && !(nHighlights == nExpectedHighlights))
 			throw new RuntimeException("Expected " + nExpectedHighlights + " found " + nHighlights);
 		if (">".equals(relation) && !(nHighlights > nExpectedHighlights))
@@ -416,11 +446,11 @@ public class StepDefs {
 		highlights.addAll(driver.findElements(By.cssSelector(".hilitedTerm"))); // could be either of these classes used for highlighting
 		for (WebElement e: highlights)
 			if (termToBeHighighted.equals(e.getText())) {
-				logger.info ("highlighted term " + termToBeHighighted + " found");
+				log.info ("highlighted term " + termToBeHighighted + " found");
 				return;
 			}
 		String message = "highlighted term " + termToBeHighighted + " not found!";
-		logger.warn (message);
+		log.warn (message);
 		throw new RuntimeException(message);
 	}
 
@@ -436,7 +466,7 @@ public class StepDefs {
 				if (nMessages <= 0) {
 					throw new RuntimeException("Error: No messages on browse page");
 				} else {
-					logger.info (nMessages + " messages on the browse page");
+					log.info (nMessages + " messages on the browse page");
 				}
 				driver.close();
 			}
@@ -462,7 +492,7 @@ public class StepDefs {
 				}
 			}
 		}
-		logger.warn ("Error: tab with title " + title + " not found!");
+		log.warn ("Error: tab with title " + title + " not found!");
 		// title not found? return to parentWindow
 		driver.switchTo().window(parentWindow);
 	}
@@ -480,7 +510,7 @@ public class StepDefs {
 	// @Given("I switch to the previous tab")
 	public void switchTabBack() throws InterruptedException {
 		if (tabStack.size() < 1) {
-			logger.warn ("Warning: trying to pop tab stack when it is empty!");
+			log.warn ("Warning: trying to pop tab stack when it is empty!");
 			return;
 		}
 
@@ -533,7 +563,7 @@ public class StepDefs {
 	}
 
 	// @Then("I confirm the alert$")
-	public void handleAlert() throws InterruptedException {
+	public void confirmAlert() throws InterruptedException {
 		Thread.sleep(5000);
 		Alert alert = driver.switchTo().alert();
 		alert.accept();
@@ -545,7 +575,7 @@ public class StepDefs {
 		if (new File(folderName).exists()) {
 			throw new RuntimeException ("Folder " + folderName + " is not expected to exist, but it does!");
 		}
-		logger.info ("Good, folder " + folderName + " does not exist");
+		log.info ("Good, folder " + folderName + " does not exist");
 	}
 
 	// @Then("I verify the folder (.*) exists$")
@@ -554,7 +584,7 @@ public class StepDefs {
 		if (!new File(folderName).exists()) {
 			throw new RuntimeException ("Folder " + folderName + " is expected to exist, but it does not!");
 		}
-		logger.info ("Good, folder " + folderName + " exists");
+		log.info ("Good, folder " + folderName + " exists");
 	}
 
 	// if the value is <abc> then we read the value of property abc in the hook. otherwise we use it as is.

@@ -13,7 +13,7 @@
          <!-- this targets updates the standalone jar for both discovery and full. -->
 
          <!-- first, add the stuff the launcher needs, like icons etc. (stored in lib.dir) -->
-         <jar destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar" update="true" basedir="${lib.dir}" includes="index.html,splash-image.png,muse-icon.png,edu/stanford/ejalbert/launching/windows/windowsConfig.properties"/>
+         <jar destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar" update="true" basedir="${lib.dir}" includes="index.html,log4j.properties,splash-image.png,muse-icon.png,edu/stanford/ejalbert/launching/windows/windowsConfig.properties"/>
 
           <!-- make a replica of what we have so far, for discovery -->
           <copy file="${target.dir}/epadd-standalone-jar-with-dependencies.jar" tofile="${target.dir}/epadd-discovery-standalone-jar-with-dependencies.jar"/>

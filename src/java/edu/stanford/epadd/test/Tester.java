@@ -3,11 +3,9 @@ package edu.stanford.epadd.test;
 import org.apache.commons.cli.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.xerces.impl.xpath.XPath;
-import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.Alert;
 
 import java.io.*;
-import java.util.Properties;
 
 /**
  * Created by hangal on 11/29/16.
@@ -15,12 +13,7 @@ import java.util.Properties;
 public class Tester {
 
     private static Log log = LogFactory.getLog(Tester.class);
-    static Properties VARS;
     public static String BASE_URL = "http://localhost:9099/epadd/";
-    public static String EPADD_TEST_PROPS_FILE = System.getProperty("user.home") + File.separator + "epadd.browser.properties";
-
-    public boolean runningOnMac() { return System.getProperty("os.name").startsWith("Mac"); }
-    WebDriver driver;
     StepDefs browser;
 
     private static Options getOpt()
@@ -45,13 +38,15 @@ public class Tester {
         options.addOption( "pe", "processing-export", false, "check export from processing");
         options.addOption( "ds", "discovery", false, "check discovery module");
         options.addOption( "dl", "delivery", false, "check delivery module");
-        options.addOption( "del", "delete", false, "delete archive when done");
+        options.addOption( "del", "delete-archive", false, "delete archive when done");
 
         //	options.addOption( "ns", "no-shutdown", false, "no auto shutdown");
         return options;
     }
 
     public void appraisalImport() throws InterruptedException, IOException {
+        browser.updateTestStatus ("Checking import email functionality");
+
         browser.openURL(BASE_URL + "email-sources");
         browser.enterValueInInputField("name", "<name>");
         browser.enterValueInInputField("alternateEmailAddrs", "<emailAddress>");
@@ -71,6 +66,8 @@ public class Tester {
     }
 
     public void setImages() throws InterruptedException, IOException {
+        browser.updateTestStatus ("Checking profile images...");
+
         browser.openURL(BASE_URL + "browse-top");
         browser.clickOnCSS ("#more-options");
         browser.clickOn ("Set Images");
@@ -82,14 +79,10 @@ public class Tester {
         browser.takeScreenshot("profile-images");
     }
 
-    private void checkNumberOfAttachments() {
-        browser.openURL(BASE_URL + "browse-top");
-        browser.verifyEquals ("#nImageAttachments", "136");
-        browser.verifyEquals ("#nDocAttachments", "289");
-        browser.verifyEquals ("#nOtherAttachments", "70");
-    }
 
     public void basicChecks() throws IOException, InterruptedException {
+        browser.updateTestStatus ("Checking different pages");
+
         browser.visitAndTakeScreenshot(BASE_URL + "debug");
         browser.visitAndTakeScreenshot(BASE_URL + "settings");
         browser.visitAndTakeScreenshot(BASE_URL + "about");
@@ -99,6 +92,8 @@ public class Tester {
     }
 
     private void checkCorrespondents() throws InterruptedException, IOException {
+        browser.updateTestStatus ("Checking correspondents");
+
         browser.clickOnCSS("a[href='correspondents']");
         browser.verifyEquals ("span.field-name", "All Correspondents");
         browser.clickOnCSS ("td > a");
@@ -108,7 +103,16 @@ public class Tester {
         browser.takeScreenshot("correspondents-graph");
     }
 
+    private void checkNumberOfAttachments() {
+        browser.openURL(BASE_URL + "browse-top");
+        browser.verifyEquals ("#nImageAttachments", "136");
+        browser.verifyEquals ("#nDocAttachments", "289");
+        browser.verifyEquals ("#nOtherAttachments", "70");
+    }
+
     private void checkAttachments() throws InterruptedException, IOException {
+        browser.updateTestStatus ("Checking attachments");
+
         browser.clickOn ("Browse");
         browser.clickOn ("Image attachments");
      //   browser.clickOnCSS("a[href='image-attachments']");
@@ -188,6 +192,8 @@ public class Tester {
 
 
     public void checkSensitiveMessages() throws InterruptedException {
+        browser.updateTestStatus ("Checking sensitive message search");
+
         browser.openURL(BASE_URL + "browse-top");
         browser.clickOn("Sensitive messages");
         browser.checkMessagesOnBrowsePage(">", 7);
@@ -196,28 +202,46 @@ public class Tester {
     }
 
     public void checkLexicons() throws InterruptedException, IOException {
-        browser.openURL(BASE_URL + "browse-top");
-        browser.clickOn ("Lexicon Search");
-        browser.waitFor (2);
-        browser.verifyContains("span.field-value", "Lexicon Hits");
-        browser.waitFor (2);
-        browser.clickOn ("View/Edit Lexicon");
-        browser.verifyURL("/epadd/edit-lexicon?lexicon=general");
-        browser.waitFor(2);
-        browser.navigateBack();
-
+        browser.updateTestStatus("Checking lexicon functionality");
         // graph
+        browser.openURL(BASE_URL + "browse-top");
+
+        // test if lexicon page opens
+        browser.clickOn ("Lexicon Search");
+        browser.waitFor (1);
+        browser.verifyContains("span.field-value", "Lexicon Hits");
+        browser.waitFor (1);
+
+        // test lexicon graph view
         browser.clickOn ("Go To Graph View");
         browser.takeScreenshot("lexicon-graph");
         browser.navigateBack();
-        browser.waitFor(2);
+        browser.waitFor(1);
+
+        // test edit-lexicon
+        browser.clickOnCSS ("#edit-lexicon");
+        browser.waitFor (1);
+        browser.verifyURL("/epadd/edit-lexicon?lexicon=general");
+        browser.waitFor(1);
+        browser.navigateBack();
+
+        // test create lexicon
+        browser.clickOnCSS ("#create-lexicon");
+        browser.enterPrompt("TestLexicon");
+        browser.waitFor (1);
+        browser.verifyURL("/epadd/edit-lexicon?lexicon=TestLexicon");
+        browser.waitFor(1);
+        browser.navigateBack();
     }
 
     /** currently checks do not transfer only */
     public void checkFlags() throws InterruptedException {
+        browser.updateTestStatus ("Checking message flags");
+
         browser.openURL(BASE_URL + "browse-top");
         browser.clickOn ("Lexicon Search");
         browser.dropDownSelection ("#lexiconName", "Sensitive");
+        browser.waitFor (2);
         browser.clickOn ("Health");
         browser.switchToTab ("health");
         browser.waitFor (5);
@@ -230,6 +254,7 @@ public class Tester {
     }
 
     public void checkSearch() throws InterruptedException {
+        browser.updateTestStatus ("Checking Search functionality");
         browser.clickOn("Search");
         browser.enterValueInInputField("term", "florida");
         browser.clickOn ("button", "search");
@@ -244,65 +269,108 @@ public class Tester {
     }
 
     public void checkQueryGenerator () throws InterruptedException {
+        browser.updateTestStatus ("Checking Query Generator");
+
         browser.clickOn("Search");
         browser.clickOn("Query Generator");
         browser.enterValueInInputField("refText", "John Ellis Jeb Bush Sr. (born February 11, 1953) is an American businessman and politician who served as the 43rd Governor of Florida from 1999 to 2007\", 5);\n");
         browser.clickOn ("button", "search");
         browser.clickOnCSS ("div > button[name=\"Go\"]");
-        browser.verifyURL ("http://localhost:9099/epadd/query-generator");
+        browser.verifyURL (BASE_URL + "query-generator");
         browser.waitFor (10);
         browser.checkHighlights (">", 0);
         browser.checkHighlighted ("Florida");
     }
 
     public void checkEditAddressBook() throws InterruptedException {
-        browser.openURL("http://localhost:9099/epadd/browse-top");
+        browser.updateTestStatus ("Checking editing of address book");
+
+        browser.openURL(BASE_URL + "browse-top");
         browser.clickOnCSS("#more-options");
         browser.clickOn ("Edit Correspondents");
-        browser.verifyURL ("http://localhost:9099/epadd/edit-correspondents");
+        browser.verifyURL (BASE_URL + "edit-correspondents");
         browser.editAddressBook ("Peter Chan");
         browser.clickOn ("Save");
-        browser.verifyURL("http://localhost:9099/epadd/browse-top");
+        browser.verifyURL(BASE_URL + "browse-top");
         browser.verifyContains (".profile-text", "Peter Chan");
     }
 
-    public void checkAppraisalExport() {
+    public void checkAppraisalExport() throws InterruptedException {
+        browser.updateTestStatus ("Checking export from appraisal");
+
         String appraisalExportDir = StepDefs.BASE_DIR + File.separator + "appraisal-export";
         new File(appraisalExportDir).mkdirs();
+
+        browser.clickOn("Export");
+        browser.clickOn ("button", "Export");
+        browser.enterValueInInputField("dir", StepDefs.BASE_DIR + File.separator + "appraisal-export");
+        browser.clickOn ("button", "Export");
+    }
+
+    public void deleteArchive () throws InterruptedException {
+        browser.updateTestStatus ("Checking archive deletion");
+
+        browser.clickOnCSS("#more-options");
+        browser.clickOn ("Settings");
+        browser.clickOn ("Delete Archive");
+        browser.confirmAlert();
+        browser.openURL(BASE_URL + "browse-top");
+        browser.verifyURL(BASE_URL + "email-sources"); // should redirect to email-sources
+    }
+
+    public void doAppraisal(String args[]) throws IOException, InterruptedException, ParseException {
+        try {
+            Options options = getOpt();
+            CommandLineParser parser = new PosixParser();
+            CommandLine cmd = parser.parse(options, args);
+            browser = new StepDefs();
+            browser.openBrowser();
+           browser.openEpadd("appraisal");
+
+            Thread.sleep(15000); // wait for it to startup and load the archive if needed
+            if (cmd.hasOption("import")) {
+                appraisalImport();
+            }
+
+
+          //  checkFlags();
+
+//            checkLexicons();
+            checkEditAddressBook();
+            basicChecks();
+            checkCorrespondents();
+            checkAttachments();
+            checkSensitiveMessages();
+            checkSearch();
+            checkQueryGenerator();
+
+            checkAppraisalExport();
+
+            if (cmd.hasOption("delete-archive"))
+                deleteArchive();
+
+            if (cmd.hasOption("visit-all-pages")) {
+                // visit all pages, take screenshot
+                visitAllPages();
+            }
+
+            browser.closeEpadd();
+            browser.closeBrowser();
+        } catch (Exception e) {
+            log.warn (e);
+            e.printStackTrace(System.out);
+            if (browser != null) {
+                browser.testStatus = "Test failed! " + e.getMessage();
+                browser.testStatusColor = "red";
+                browser.updateTestStatus();
+//              browser.waitFor(5);
+//              browser.closeBrowser();
+            }
+        }
     }
 
     public void doIt(String args[]) throws IOException, InterruptedException, ParseException {
-        Options options = getOpt();
-        CommandLineParser parser = new PosixParser();
-        CommandLine cmd = parser.parse(options, args);
-        browser = new StepDefs();
-        browser.openEpadd("appraisal");
-
-        browser.openBrowser();
-        Thread.sleep (15000); // wait for it to startup and load the archive if needed
-        if (cmd.hasOption("import")) {
-            appraisalImport();
-        }
-
-
-        checkEditAddressBook();
-        checkLexicons();
-        checkFlags();
-        basicChecks();
-        checkCorrespondents();
-        checkAttachments();
-        checkSensitiveMessages();
-        checkSearch();
-        checkQueryGenerator();
-        checkAppraisalExport();
-
-        if (cmd.hasOption("visit-all-pages")) {
-            // visit all pages, take screenshot
-            visitAllPages();
-        }
-
-        browser.closeEpadd();
-        browser.closeBrowser();
+        doAppraisal(args);
     }
 
     public static void main (String args[]) throws InterruptedException, IOException, ParseException {
