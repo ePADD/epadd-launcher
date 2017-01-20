@@ -505,7 +505,8 @@ public class TomcatMain {
             // context for /epadd
             copyResource("epadd.war", baseDir); // extract from standalone.jar to baseDir
             EPADD_WEBAPP = server.addWebapp("/" + WEBAPP_NAME, baseDir + "epadd.war"); // deploy basedir/webapp.war to /webapp in tomcat
-
+//			copyResource ("web.xml", baseDir);
+//			EPADD_WEBAPP.setAltDDName(baseDir + File.separator + "web.xml");
         } catch (Exception e) {
             out.println("Could not copy resources to deploy epadd! " + e);
         }
