@@ -33,6 +33,24 @@
           <move file="${target.dir}/epadd-discovery-standalone-jar-with-dependencies.jar" tofile="epadd-discovery-standalone.jar"/>
     </target>
 
+    <target name="standalone-jar-no-discovery"> 
+         <!-- target for quick building -->
+         <!-- this targets updates the standalone jar for both discovery and full. -->
+
+         <!-- first, add the stuff the launcher needs, like icons etc. (stored in lib.dir) -->
+         <jar destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar" update="true" basedir="${lib.dir}" includes="index.html,log4j.properties,splash-image.png,muse-icon.png,edu/stanford/ejalbert/launching/windows/windowsConfig.properties"/>
+
+          <!-- add crossdomain.xml only to full epadd-standalone, not to discovery -->
+          <jar destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar" update="true" basedir="${lib.dir}" includes="crossdomain.xml"/>
+
+          <!-- copy the epadd.war file for both discovery and full into the respective standalone jars. the files have to be named as epadd.war, so copy into java.io.tmpdir first -->
+          <copy overwrite="true" file="${epadd.target.dir}/epadd-0.0.1-SNAPSHOT.war" tofile="${java.io.tmpdir}/epadd.war"/>
+          <jar update="true" basedir="${java.io.tmpdir}" destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar" includes="epadd.war"/>
+
+          <!-- rename the files and move them to the current dir -->
+          <move file="${target.dir}/epadd-standalone-jar-with-dependencies.jar" tofile="epadd-standalone.jar"/>
+    </target>
+
 	<target name="exe">
 		<condition property="launch4j.dir" value="launch4j-3.3-macos10.7">
 		    <matches string="${os.version}" pattern="^10.[234567]." />
