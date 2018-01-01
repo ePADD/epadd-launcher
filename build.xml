@@ -84,6 +84,7 @@
 	 classname="com.oracle.appbundler.AppBundlerTask"
          classpath="${lib.dir}/appbundler-1.0.jar" /> 
 
+<!-- IMPORTANT: JAVA_HOME must be set correctly in .bashrc (e.g. export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk/Contents/Home/) for this task to work, otherwise it returns a cryptic Info.plist error -->
 <target name="macapp">
     <mkdir dir="dist/epadd" /> <!-- dist/epadd because the vol. name on the dmg needs to be epadd and not dist. -->
     <bundleapp outputdirectory="dist/epadd"
