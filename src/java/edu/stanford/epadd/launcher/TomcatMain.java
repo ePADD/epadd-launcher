@@ -23,6 +23,7 @@ import org.apache.catalina.Context;
 import org.apache.catalina.Session;
 import org.apache.catalina.startup.Tomcat;
 import org.apache.commons.cli.*;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 
@@ -35,6 +36,10 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 class Splash extends Frame implements ActionListener {
 	Graphics2D g;
@@ -146,7 +151,107 @@ public class TomcatMain {
             out.println("Copied resource + " + resourceName + " with size " + newFile.length() + " bytes to " + newFile.getAbsolutePath());
         }
 	}
+	//reads the resourceName from classpath, copies it to rootdir (handles direcotry as well..That is why different from the above method.
+	/*public static void copyResourcesRecursively(String resourceName, String destDir
+													  ) throws IOException {
+		{
+			final URL resourceUrl = TomcatMain.class.getClassLoader().getResource(resourceName);
+			if (resourceUrl == null) {
+				tellUser("Sorry! Unable to locate file on classpath: " + resourceName);
+				throw new RuntimeException ("Sorry! Unable to locate file on classpath: " + resourceName);
+			}
 
+			JarEntry resourcentry = ((JarURLConnection)resourceUrl.openConnection()).getJarEntry();
+			JarFile jfile = ((JarURLConnection)resourceUrl.openConnection()).getJarFile();
+			Enumeration<JarEntry> jenums = jfile.entries();
+			Set<String> resnames = new LinkedHashSet<>();
+			while(jenums.hasMoreElements()){
+				JarEntry jen = jenums.nextElement();
+				if(jen.isDirectory())
+				resnames.add(jen.getName());
+			}
+			InputStream is = jfile.getInputStream(resourcentry);
+			try {
+				File dirpath = new File(resourceUrl.toURI());
+				if(dirpath.isDirectory()){
+					new File(destDir).mkdir();
+					org.apache.commons.io.FileUtils.copyDirectory(dirpath,new File(destDir));
+				}
+			} catch (URISyntaxException e) {
+				e.printStackTrace();
+			}
+			InputStream iis = resourceUrl.openStream();
+			out.println("Copying: " + resourceName + " to " + destDir + " is=" + is);
+
+			*//*File existingFile = new File(file);
+			if (existingFile.exists())
+				tellUser("Existing file: " + file);
+
+			copy_stream_to_file(is, file);
+
+			File newFile = new File(file);
+			if (!newFile.exists()) {
+				tellUser("Sorry! Unable to copy file: " + file);
+				throw new RuntimeException ("Sorry! Unable to copy file: " + file);
+			}*//*
+
+			out.println("Copied resource + " + resourceName + " with size " + destDir.length() + " bytes to ");
+		}
+
+	}*/
+
+	private static void copyResourcesRecursively(String sourceDirectory, String writeDirectory) throws IOException {
+		final URL dirURL = TomcatMain.class.getClassLoader().getResource( sourceDirectory );
+		//final String path = sourceDirectory.substring( 1 );
+
+		if( ( dirURL != null ) && dirURL.getProtocol().equals( "jar" ) ) {
+			final JarURLConnection jarConnection = (JarURLConnection) dirURL.openConnection();
+			//System.out.println( "jarConnection is " + jarConnection );
+
+			final ZipFile jar = jarConnection.getJarFile();
+
+			final Enumeration< ? extends ZipEntry> entries = jar.entries(); // gives ALL entries in jar
+
+			while( entries.hasMoreElements() ) {
+				final ZipEntry entry = entries.nextElement();
+				final String name = entry.getName();
+				// System.out.println( name );
+				if( !name.startsWith( sourceDirectory ) ) {
+					// entry in wrong subdir -- don't copy
+					continue;
+				}
+				final String entryTail = name.substring( sourceDirectory.length() );
+
+				final File f = new File( writeDirectory + File.separator + entryTail );
+				if( entry.isDirectory() ) {
+					// if its a directory, create it
+					final boolean bMade = f.mkdir();
+					System.out.println( (bMade ? "  creating " : "  unable to create ") + name );
+				}
+				else {
+					System.out.println( "  writing  " + name );
+					final InputStream is = jar.getInputStream( entry );
+					final OutputStream os = new BufferedOutputStream( new FileOutputStream( f ) );
+					final byte buffer[] = new byte[4096];
+					int readCount;
+					// write contents of 'is' to 'os'
+					while( (readCount = is.read(buffer)) > 0 ) {
+						os.write(buffer, 0, readCount);
+					}
+					os.close();
+					is.close();
+				}
+			}
+
+		}
+		else if( dirURL == null ) {
+			throw new IllegalStateException( "can't find " + sourceDirectory + " on the classpath" );
+		}
+		else {
+			// not a "jar" protocol URL
+			throw new IllegalStateException( "don't know how to handle extracting from " + dirURL );
+		}
+	}
 	private static boolean isURLAlive(String url) throws IOException
 	{
 		try {
@@ -488,8 +593,31 @@ public class TomcatMain {
 
         EPADD_WEBAPP = null;
 
-        // deploy crossdomain.xml and index.html and epadd.war at their respective paths in the server
         try {
+        // deploy epadd-setting, crossdomain.xml and index.html and epadd.war at their respective paths in the server
+	    //deploy epadd-settings to home folder if not present there (or should we copy it always?)
+            {
+            final URL epaddsetting = TomcatMain.class.getClassLoader().getResource("epadd-settings");
+            if (epaddsetting == null) {
+                System.out.println("Sorry! Unable to locate epadd-settings on classpath: " );
+                throw new RuntimeException ("Sorry! Unable to locate epadd-settings on classpath: ");
+            }		
+String epaddsettingdir = epaddsetting.getPath();
+//destination is user.home.. 
+String destpath= System.getProperty("user.home") + File.separator + "epadd-settings";
+//if destpath exists then no need to copy else copy to System.getProperty("user.home") path
+copyResourcesRecursively("epadd-settings",destpath);
+/*
+
+				if(!new File(destpath).exists()){
+ System.out.println("Copying epadd-settings to home folder");
+}else{
+ System.out.println("epadd-settings folder is present in home folder. Skip copying again");
+}
+*/
+
+            }
+
             // context for /
             {
                 // new directory to hold files that should be accessible with the path / under the server
@@ -808,7 +936,7 @@ static class ShutdownThread extends Thread {
 
 //		tellUser (splash, "Log file: " + debugFile + "***\n");
 
-		out.println ("Starting up ePADD on the local computer at " + BASE_URL + ", " + formatDateLong(new GregorianCalendar()));
+		System.out.println ("Starting up ePADD on the local computer at " + BASE_URL + ", " + formatDateLong(new GregorianCalendar()));
 	//	out.println ("***For troubleshooting information, see this file: " + debugFile + "***\n");
 		out.println ("Current directory = " + System.getProperty("user.dir") + ", home directory = " + System.getProperty("user.home"));
 		out.println("Memory status at the beginning: " + getMemoryStats());
