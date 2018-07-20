@@ -104,7 +104,7 @@
         mainclassname="edu.stanford.epadd.launcher.TomcatMain">
 	<runtime dir="${env.JAVA_HOME}" />
         <classpath file="epadd-standalone.jar" />
-	<option value="-Xmx4g"/>
+	<option value="-Xmx64g"/>
 	<option value="-splash:epadd-standalone.jar:splash-image.png"/>
    </bundleapp>
   <exec executable="hdiutil">
@@ -126,7 +126,7 @@
         mainclassname="edu.stanford.epadd.launcher.TomcatMain">
 	<runtime dir="${env.JAVA_HOME}" />
         <classpath file="epadd-discovery-standalone.jar" />
-	<option value="-Xmx2g"/>
+	<option value="-Xmx64g"/>
 	<option value="-Depadd.mode.discovery=1"/>
 	<option value="-splash:epadd-discovery-standalone.jar:splash-image.png"/>
    </bundleapp>
