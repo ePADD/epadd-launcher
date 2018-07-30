@@ -597,7 +597,7 @@ public class TomcatMain {
         // deploy epadd-setting, crossdomain.xml and index.html and epadd.war at their respective paths in the server
 	    //deploy epadd-settings to home folder if not present there (or should we copy it always?)
             {
-            final URL epaddsetting = TomcatMain.class.getClassLoader().getResource("epadd-settings");
+        /*    final URL epaddsetting = TomcatMain.class.getClassLoader().getResource("epadd-settings");
             if (epaddsetting == null) {
                 System.out.println("Sorry! Unable to locate epadd-settings on classpath: " );
                 throw new RuntimeException ("Sorry! Unable to locate epadd-settings on classpath: ");
@@ -607,6 +607,8 @@ String epaddsettingdir = epaddsetting.getPath();
 String destpath= System.getProperty("user.home") + File.separator + "epadd-settings";
 //if destpath exists then no need to copy else copy to System.getProperty("user.home") path
 copyResourcesRecursively("epadd-settings",destpath);
+*/
+
 /*
 
 				if(!new File(destpath).exists()){

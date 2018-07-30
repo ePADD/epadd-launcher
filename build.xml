@@ -18,7 +18,7 @@
 	  <fileset dir="${user.home}" includes="epadd-settings/**"/>
 	</jar>-->
 
-         <jar destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar"  update="true" basedir="${user.home}" includes="epadd-settings/**"/>
+         <!--<jar destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar"  update="true" basedir="${user.home}" includes="epadd-settings/**"/>-->
          <!-- first, add the stuff the launcher needs, like icons etc. (stored in lib.dir) -->
          <jar destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar" update="true" basedir="${lib.dir}" includes="index.html,log4j.properties,splash-image.png,muse-icon.png,edu/stanford/ejalbert/launching/windows/windowsConfig.properties"/>
 
@@ -45,7 +45,7 @@
          <!-- this targets updates the standalone jar for both discovery and full. -->
 
          
-         <jar destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar"  update="true" basedir="${user.home}" includes="epadd-settings/**"/>
+     <!-- <jar destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar"  update="true" basedir="${user.home}" includes="epadd-settings/**"/>-->
          <!-- first, add the stuff the launcher needs, like icons etc. (stored in lib.dir) -->
          <jar destfile="${target.dir}/epadd-standalone-jar-with-dependencies.jar" update="true" basedir="${lib.dir}" includes="index.html,log4j.properties,splash-image.png,muse-icon.png,edu/stanford/ejalbert/launching/windows/windowsConfig.properties"/>
 
