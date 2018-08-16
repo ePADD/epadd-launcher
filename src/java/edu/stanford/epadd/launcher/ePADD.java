@@ -50,6 +50,7 @@ class Splash extends Frame implements ActionListener {
 			return;
 
         int SPLASH_SCREEN_WIDTH = ((int) splash.getBounds().getWidth());
+        int MARGIN = 10; // margin for text on each side
 
 		// clear the previous text
 		g.setColor(new Color(1, 117, 188)); // epadd color, #0175bc
@@ -58,11 +59,11 @@ class Splash extends Frame implements ActionListener {
 
 		// write the new text
 		g.setColor(Color.WHITE); // #0175bc
-		g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 16));
+		g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
 
         // compute the startX so as to center align the string,
         int stringWidth = g.getFontMetrics().stringWidth(text);
-        int startX = (stringWidth > SPLASH_SCREEN_WIDTH) ? 0 : (SPLASH_SCREEN_WIDTH-stringWidth)/2;
+        int startX = (stringWidth > (SPLASH_SCREEN_WIDTH - MARGIN*2)) ? MARGIN : MARGIN + (SPLASH_SCREEN_WIDTH-stringWidth)/2;
         g.drawString(text, startX, 200);
 
 		splash.update();
@@ -80,6 +81,12 @@ class Splash extends Frame implements ActionListener {
 			System.out.println("splash.createGraphics() returned null");
 			return;
 		}
+
+		/* code to prevent text from appearing too pixelated - https://stackoverflow.com/questions/31536952/how-to-fix-text-quality-in-java-graphics */
+        Map<?, ?> desktopHints = (Map<?, ?>) Toolkit.getDefaultToolkit().getDesktopProperty("awt.font.desktophints");
+        if (desktopHints != null) {
+            g.setRenderingHints(desktopHints);
+        }
 		System.out.println ("splash url = " + splash.getImageURL() + " w=" + r.getWidth() + " h=" + r.getHeight() + " size=" + r.getSize() + " loc=" + r.getLocation());
 //		setVisible(true);
 //		toFront();
