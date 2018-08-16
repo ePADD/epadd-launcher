@@ -89,7 +89,7 @@
       <configuration>
         <archive>
           <manifest>
-            <mainClass>edu.stanford.epadd.launcher.TomcatMain</mainClass>
+            <mainClass>edu.stanford.epadd.launcher.ePADD</mainClass>
           </manifest>
           <manifestEntries>
             <SplashScreen-Image>splash-image.png</SplashScreen-Image>

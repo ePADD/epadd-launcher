@@ -23,7 +23,6 @@ import org.apache.catalina.Context;
 import org.apache.catalina.Session;
 import org.apache.catalina.startup.Tomcat;
 import org.apache.commons.cli.*;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.log4j.PropertyConfigurator;
 import org.apache.tomcat.util.http.fileupload.FileUtils;
 
@@ -34,10 +33,9 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.*;
 import java.net.*;
+
 import java.util.*;
 import java.util.List;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -51,15 +49,22 @@ class Splash extends Frame implements ActionListener {
 		if (splash == null)
 			return;
 
+        int SPLASH_SCREEN_WIDTH = ((int) splash.getBounds().getWidth());
+
 		// clear the previous text
-		g.setColor(new Color(1, 117, 188)); // #0175bc
-		g.fillRect(300, 175, ((int) splash.getBounds().getWidth()) - 300, 40); // x=300 is where the logo starts, so we left-align to it. width is usually 795
+		g.setColor(new Color(1, 117, 188)); // epadd color, #0175bc
+		g.fillRect(0, 175, SPLASH_SCREEN_WIDTH, 40);
 		g.setPaintMode();
 
 		// write the new text
 		g.setColor(Color.WHITE); // #0175bc
-		g.drawString(text, 300, 200);
-//		g.setFont(new Font("Serif", Font.PLAIN, 12));
+		g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 16));
+
+        // compute the startX so as to center align the string,
+        int stringWidth = g.getFontMetrics().stringWidth(text);
+        int startX = (stringWidth > SPLASH_SCREEN_WIDTH) ? 0 : (SPLASH_SCREEN_WIDTH-stringWidth)/2;
+        g.drawString(text, startX, 200);
+
 		splash.update();
 	}
 
@@ -92,7 +97,7 @@ class Splash extends Frame implements ActionListener {
 }
 
 /** main launcher class for tomcat with the epadd.war webapp */
-public class TomcatMain {
+public class ePADD {
 	public static String EPADD_PROPS_FILE = System.getProperty("user.home") + File.separator + "epadd.properties";
 
 	static PrintStream savedSystemOut, savedSystemErr;
@@ -128,7 +133,7 @@ public class TomcatMain {
 
         // extract the war to tmpdir
         {
-            final URL resourceUrl = TomcatMain.class.getClassLoader().getResource(resourceName);
+            final URL resourceUrl = ePADD.class.getClassLoader().getResource(resourceName);
             if (resourceUrl == null) {
                 tellUser("Sorry! Unable to locate file on classpath: " + resourceName);
                 throw new RuntimeException ("Sorry! Unable to locate file on classpath: " + resourceName);
@@ -155,7 +160,7 @@ public class TomcatMain {
 	/*public static void copyResourcesRecursively(String resourceName, String destDir
 													  ) throws IOException {
 		{
-			final URL resourceUrl = TomcatMain.class.getClassLoader().getResource(resourceName);
+			final URL resourceUrl = ePADD.class.getClassLoader().getResource(resourceName);
 			if (resourceUrl == null) {
 				tellUser("Sorry! Unable to locate file on classpath: " + resourceName);
 				throw new RuntimeException ("Sorry! Unable to locate file on classpath: " + resourceName);
@@ -201,7 +206,7 @@ public class TomcatMain {
 	}*/
 
 	private static void copyResourcesRecursively(String sourceDirectory, String writeDirectory) throws IOException {
-		final URL dirURL = TomcatMain.class.getClassLoader().getResource( sourceDirectory );
+		final URL dirURL = ePADD.class.getClassLoader().getResource( sourceDirectory );
 		//final String path = sourceDirectory.substring( 1 );
 
 		if( ( dirURL != null ) && dirURL.getProtocol().equals( "jar" ) ) {
@@ -597,7 +602,7 @@ public class TomcatMain {
         // deploy epadd-setting, crossdomain.xml and index.html and epadd.war at their respective paths in the server
 	    //deploy epadd-settings to home folder if not present there (or should we copy it always?)
             {
-            final URL epaddsetting = TomcatMain.class.getClassLoader().getResource("epadd-settings");
+            final URL epaddsetting = ePADD.class.getClassLoader().getResource("epadd-settings");
             if (epaddsetting == null) {
                 System.out.println("Sorry! Unable to locate epadd-settings on classpath: " );
                 throw new RuntimeException ("Sorry! Unable to locate epadd-settings on classpath: ");
@@ -684,7 +689,7 @@ copyResourcesRecursively("epadd-settings",destpath);
 		     tellUser ("Adding ePADD to the system tray");
 	         SystemTray tray = SystemTray.getSystemTray();
 	         
-	         URL u = TomcatMain.class.getClassLoader().getResource("muse-icon.png"); // note: this better be 16x16, Windows doesn't resize! Mac os does.
+	         URL u = ePADD.class.getClassLoader().getResource("muse-icon.png"); // note: this better be 16x16, Windows doesn't resize! Mac os does.
 	         out.println ("ePADD icon resource is " + u);
 
 	         Image image = Toolkit.getDefaultToolkit().getImage(u);
