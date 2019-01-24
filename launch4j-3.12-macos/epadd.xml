@@ -7,7 +7,7 @@
   <icon>epadd.ico</icon>
   <jre>
     <minVersion>1.7.0</minVersion>
-	<maxHeapSize>4096</maxHeapSize>
+	<maxHeapSize>65536</maxHeapSize>
   </jre>
 <!--
   <splash>
