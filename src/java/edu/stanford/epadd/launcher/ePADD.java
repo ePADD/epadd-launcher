@@ -562,7 +562,7 @@ public class ePADD {
 	{
         System.setProperty("muse.container", "tomcat");
 
-	    out.println("Setting up ePADD at time " + formatDateLong(new GregorianCalendar()));
+	    tellUser("Setting up ePADD at time " + formatDateLong(new GregorianCalendar()));
 	    out.println("Setting up Tomcat");
 	    String tmp = System.getProperty("java.io.tmpdir");
 
@@ -586,7 +586,7 @@ public class ePADD {
                 out.println("Done Tomcat clearing webapps dir: " + webappsDir);
             }
             new File(webappsDir).mkdirs();
-            out.println("Created webapps folder at " + webappsDir);
+            tellUser("Created webapps folder at " + webappsDir);
 
             String workDir = baseDir + "work" + File.separator;
             File workDirFile = new File(workDir);
@@ -596,12 +596,12 @@ public class ePADD {
                 out.println("Done clearing Tomcat work dir: " + workDir);
             }
             new File(workDir).mkdirs();
-            out.println("Created work folder at " + workDir);
+            tellUser("Created work folder at " + workDir);
         }
         server = new Tomcat();
         server.setPort(PORT);
         server.setBaseDir(baseDir);
-        out.println ("Server basedir set to " + baseDir);
+        tellUser("Server basedir set to " + baseDir);
 
         EPADD_WEBAPP = null;
 
@@ -930,7 +930,6 @@ static class ShutdownThread extends Thread {
 
 		readConfigFile(); // should be read first because it reads epadd mode etc.
 		// IS_DISCOVERY_MODE should be set up here
-
 		if (!IS_DISCOVERY_MODE)
 			SPLASH = new Splash();
 		else {

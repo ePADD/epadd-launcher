@@ -7,7 +7,7 @@
   <name>ePADD-standalone</name>
   <url>http://epadd.stanford.edu</url>
   <properties>
-    <tomcat.version>8.0.29</tomcat.version>
+    <tomcat.version>9.0.37</tomcat.version>
   </properties>
   <dependencies>
     <dependency>
@@ -15,11 +15,11 @@
         <artifactId>tomcat-embed-core</artifactId>
         <version>${tomcat.version}</version>
     </dependency>
-    <dependency>
+    <!--<dependency>
         <groupId>org.apache.tomcat.embed</groupId>
         <artifactId>tomcat-embed-logging-juli</artifactId>
         <version>${tomcat.version}</version>
-    </dependency>
+    </dependency>-->
     <dependency>
         <groupId>org.apache.tomcat.embed</groupId>
         <artifactId>tomcat-embed-jasper</artifactId>
