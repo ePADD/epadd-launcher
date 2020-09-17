@@ -50,21 +50,29 @@ class Splash extends Frame implements ActionListener {
 			return;
 
         int SPLASH_SCREEN_WIDTH = ((int) splash.getBounds().getWidth());
+		int SPLASH_SCREEN_HEIGHT = ((int) splash.getBounds().getHeight());
+		System.out.println ("Splash screen is " + SPLASH_SCREEN_WIDTH + "x" + SPLASH_SCREEN_HEIGHT);
+
+		int STATUS_TEXT_HEIGHT = 30;
         int MARGIN = 10; // margin for text on each side
 
 		// clear the previous text
-		g.setColor(new Color(1, 117, 188)); // epadd color, #0175bc
-		g.fillRect(0, 175, SPLASH_SCREEN_WIDTH, 40);
+		g.setColor(Color.WHITE); // epadd color, #0175bc
+		g.fillRect(0, SPLASH_SCREEN_HEIGHT - 2 * STATUS_TEXT_HEIGHT, SPLASH_SCREEN_WIDTH, 2 * STATUS_TEXT_HEIGHT);
 		g.setPaintMode();
+		splash.update();
 
 		// write the new text
-		g.setColor(Color.WHITE); // #0175bc
+		g.setColor(new Color(1, 117, 188)); // #0175bc
 		g.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
 
         // compute the startX so as to center align the string,
         int stringWidth = g.getFontMetrics().stringWidth(text);
-        int startX = (stringWidth > (SPLASH_SCREEN_WIDTH - MARGIN*2)) ? MARGIN : MARGIN + (SPLASH_SCREEN_WIDTH-stringWidth)/2;
-        g.drawString(text, startX, 200);
+
+		int startX = (stringWidth > (SPLASH_SCREEN_WIDTH - MARGIN*2)) ? MARGIN : MARGIN + (SPLASH_SCREEN_WIDTH-stringWidth)/2;
+
+		// drawString gives an x, y for the baseline of the text, so subtract only 0.75 times the height
+		g.drawString(text, startX, (int) (SPLASH_SCREEN_HEIGHT - (STATUS_TEXT_HEIGHT * 0.75))); // assume only one line in output, so place it slightly above the bottom
 
 		splash.update();
 	}
