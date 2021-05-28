@@ -7,7 +7,7 @@
   <name>ePADD-standalone</name>
   <url>http://epadd.stanford.edu</url>
   <properties>
-    <tomcat.version>9.0.37</tomcat.version>
+    <tomcat.version>9.0.43</tomcat.version>
   </properties>
   <dependencies>
     <dependency>
