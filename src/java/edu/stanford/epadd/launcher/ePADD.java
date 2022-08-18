@@ -384,35 +384,9 @@ public class ePADD {
 	
 	private static void launchBrowser(String url) throws BrowserLaunchingInitializingException, UnsupportedOperatingSystemException, IOException, URISyntaxException
 	{
-		// we use the browser launcher only for windows to try and skip IE
-    	if (System.getProperty("os.name").toLowerCase().indexOf("windows") >= 0) 
-    	{
-    		launcher = new BrowserLauncher();
-        	List<String> browsers = (List<String>) launcher.getBrowserList();
-    		out.print ("The available browsers on this system are: ");
-    		// the preferred browser is the first browser, that is not IE.
-    		for (String str: browsers)
-    		{
-    			out.print (str + " ");
-    			if (preferredBrowser == null && !"IE".equals(str))
-    				preferredBrowser = str;
-    		}
-    		out.println();
-    		launcher.setNewWindowPolicy(true); // force new window
-
-            tellUser ("Launching URL in browser: " + url);
-
-    		if (preferredBrowser != null)
-    			launcher.openURLinBrowser(url);
-    		else
-    			launcher.openURLinBrowser(preferredBrowser, url);
-    	}
-        else
-        {
-        	out.println ("Using Java Desktop launcher to browse to " + url);
-			if (desktop != null) // just defensive in case the desktop is not there (maybe in discovery mode?)
+		out.println ("Using Java Desktop launcher to browse to: " + url);
+		if (desktop != null) // just defensive in case the desktop is not there (maybe in discovery mode?)
 	        	desktop.browse(new java.net.URI(url));
-        }
 	}
 
     /** sets up SETTINGS_DIR by reading epadd.properties in home dir if required, also sets up IS_DISCOVERY_MODE.
