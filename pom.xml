@@ -60,6 +60,12 @@
           <groupId>org.seleniumhq.selenium</groupId>
           <artifactId>selenium-server</artifactId>
           <version>3.0.1</version>
+          <exclusions>
+            <exclusion>
+              <groupId>org.eclipse.jetty.websocket</groupId>
+              <artifactId>websocket-client</artifactId>
+            </exclusion>
+          </exclusions>
       </dependency>
       <dependency>
           <groupId>junit</groupId>
