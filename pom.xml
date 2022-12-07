@@ -45,11 +45,12 @@
 		<artifactId>commons-cli</artifactId>
 		<version>1.2</version>
 	</dependency>
- <dependency>
-                        <groupId>log4j</groupId>
-                        <artifactId>log4j</artifactId>
-                        <version>1.2.16</version>
-                </dependency>
+  <dependency>
+    <groupId>org.apache.logging.log4j</groupId>
+    <artifactId>log4j-1.2-api</artifactId>
+    <version>2.19.0</version>
+    <scope>provided</scope>
+</dependency>
 <dependency>
 	<groupId>edu.stanford.ejalbert</groupId>
 	<artifactId>BrowserLauncher2</artifactId>
@@ -60,6 +61,20 @@
           <groupId>org.seleniumhq.selenium</groupId>
           <artifactId>selenium-server</artifactId>
           <version>3.0.1</version>
+          <exclusions>
+            <exclusion>
+              <groupId>org.eclipse.jetty.websocket</groupId>
+              <artifactId>websocket-client</artifactId>
+            </exclusion>
+            <exclusion>
+              <groupId>org.seleniumhq.selenium</groupId>
+              <artifactId>jetty-repacked</artifactId>
+            </exclusion>
+            <exclusion>
+              <groupId>io.netty</groupId>
+              <artifactId>netty</artifactId>
+            </exclusion>
+          </exclusions>
       </dependency>
       <dependency>
           <groupId>junit</groupId>
