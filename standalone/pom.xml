@@ -1,6 +1,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>edu.stanford.epadd</groupId>
+    <artifactId>epadd-reactor</artifactId>
+    <version>1.0-SNAPSHOT</version>
+  </parent>
   <groupId>edu.stanford.epadd</groupId>
   <artifactId>epadd-standalone</artifactId>
   <version>1.0-SNAPSHOT</version>
@@ -89,51 +94,13 @@
     <sourceDirectory>src/java</sourceDirectory>
     <finalName>epadd-standalone</finalName>
 
-    <pluginManagement>
-      <plugins>
-
-        <!-- mvn org.owasp:dependency-check-maven:check -->
-        <plugin>
-          <groupId>org.owasp</groupId>
-          <artifactId>dependency-check-maven</artifactId>
-          <version>7.3.0</version>
-          <configuration>
-            <format>html</format>
-            <outputDirectory>${project.basedir}/target</outputDirectory>
-
-            <!-- Unable to resolve system scoped dependency: jdk.tools:jdk.tools:jar:1.6:system -->
-            <skipSystemScope>true</skipSystemScope>
-
-            <!-- mvn org.owasp:dependency-check-maven:check -DpathToYarn="C:\Program Files\nodejs\yarn.cmd" -->
-            <!-- <pathToYarn>C:\Program Files\nodejs\yarn.cmd</pathToYarn> -->
-
-            <!-- <failBuildOnCVSS>0</failBuildOnCVSS> -->
-            <!-- <cveValidForHours>168</cveValidForHours> -->
-            <!-- <centralAnalyzerEnabled>false</centralAnalyzerEnabled> -->
-            <!-- <nexusAnalyzerEnabled>false</nexusAnalyzerEnabled> -->
-            <!-- <pyDistributionAnalyzerEnabled>false</pyDistributionAnalyzerEnabled> -->
-            <!-- <pyPackageAnalyzerEnabled>false</pyPackageAnalyzerEnabled> -->
-            <!-- <rubygemsAnalyzerEnabled>false</rubygemsAnalyzerEnabled> -->
-            <!-- <cmakeAnalyzerEnabled>false</cmakeAnalyzerEnabled> -->
-            <!-- <autoconfAnalyzerEnabled>false</autoconfAnalyzerEnabled> -->
-            <!-- <composerAnalyzerEnabled>false</composerAnalyzerEnabled> -->
-            <!-- <nodeAnalyzerEnabled>false</nodeAnalyzerEnabled> -->
-            <!-- <nuspecAnalyzerEnabled>false</nuspecAnalyzerEnabled> -->
-            <!-- <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled> -->
-            <!-- <retireJsAnalyzerEnabled>false</retireJsAnalyzerEnabled> -->
-          </configuration>
-          <executions>
-            <execution>
-              <goals>
-                <goal>aggregate</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
-      </plugins>
-    </pluginManagement>
-
     <plugins>
+
+      <plugin>
+        <groupId>org.owasp</groupId>
+        <artifactId>dependency-check-maven</artifactId>
+      </plugin>
+
         <plugin>
            <groupId>org.apache.maven.plugins</groupId>
            <artifactId>maven-compiler-plugin</artifactId>

@@ -2,7 +2,7 @@
 # source ~/.bashrc
 
 # build muse jar
-cd ../muse
+cd ../../muse
 mvn -f pom-jar.xml
 
 # build epadd war
@@ -10,7 +10,7 @@ cd ../epadd
 mvn # 
 
 # build launcher
-cd ../epadd-launcher
+cd ../epadd-launcher/standalone
 mvn # 
 
 # build standalone
