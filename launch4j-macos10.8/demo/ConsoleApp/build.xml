@@ -40,7 +40,7 @@
 
 	<target name="exe" depends="jar">
 		<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask" classpath="${launch4j.dir}/launch4j.jar
-		    :${launch4j.dir}/lib/xstream.jar" />
+		    :${launch4j.dir}/lib/xstream-1.4.19.jar" />
 		<launch4j>
 			<config headerType="console" jar="ConsoleApp.jar" outfile="ConsoleApp.exe" errTitle="ConsoleApp" chdir="." icon="l4j/ConsoleApp.ico">
 				<singleInstance mutexName="net.sf.launch4j.example.ConsoleApp" />

@@ -2,7 +2,7 @@
 <module type="JAVA_MODULE" version="4">
   <component name="EclipseModuleManager">
     <libelement value="jar://$MODULE_DIR$/lib/formsrt.jar!/" />
-    <libelement value="jar://$MODULE_DIR$/lib/xstream.jar!/" />
+    <libelement value="jar://$MODULE_DIR$/lib/xstream-1.4.19.jar!/" />
     <libelement value="jar://$MODULE_DIR$/lib/commons-beanutils.jar!/" />
     <libelement value="jar://$MODULE_DIR$/lib/commons-logging.jar!/" />
     <libelement value="jar://$MODULE_DIR$/lib/looks.jar!/" />
@@ -36,7 +36,7 @@
     <orderEntry type="module-library">
       <library name="xstream.jar">
         <CLASSES>
-          <root url="jar://$MODULE_DIR$/lib/xstream.jar!/" />
+          <root url="jar://$MODULE_DIR$/lib/xstream-1.4.19.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
