@@ -40,7 +40,7 @@
 
 	<target name="exe" depends="jar">
 		<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask" classpath="${launch4j.dir}/launch4j.jar
-		    :${launch4j.dir}/lib/xstream.jar" />
+		    :${launch4j.dir}/lib/xstream-1.4.19.jar" />
 		<launch4j configFile="./l4j/SimpleApp.xml" />
 	</target>
 

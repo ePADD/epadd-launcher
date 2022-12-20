@@ -72,7 +72,7 @@
 		<condition property="launch4j.dir" value="launch4j-3.8-linux">
 		    <os family="unix"/>
 		</condition>
-		<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask" classpath="${launch4j.dir}/launch4j.jar:${launch4j.dir}/lib/xstream.jar" />
+		<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask" classpath="${launch4j.dir}/launch4j.jar:${launch4j.dir}/lib/xstream-1.4.19.jar" />
 		<launch4j configFile="${launch4j.dir}/epadd.xml" />
 	</target>
 
