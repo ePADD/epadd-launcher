@@ -536,7 +536,10 @@ public class ePADD {
 	      timer.schedule (tt, KILL_AFTER_MILLIS);
 	      }
 	    */
-	    System.setSecurityManager(null); // this is important	
+		if (System.getSecurityManager() != null)
+		{
+			System.setSecurityManager(null); // this is important
+		}
 	}
 
 	/** unpack files needed from epadd-standalone.jar (epadd.war, crossdomain.xml and index.html) into tmp directories and point the server to them */
