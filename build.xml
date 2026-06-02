@@ -4,9 +4,10 @@
 	<description>
         ePADD Standalone application build script
     </description>
+    <property file="local.properties" />
     <property name="lib.dir" location="./lib" />
     <property name="target.dir" location="./target" />
-    <property name="epadd.target.dir" location="../epadd/target" /> <!-- this is where the epadd.war files are stored -->
+    <property name="epadd.target.dir" location="../epadd/target" /> <!-- default; override in local.properties -->
     <property environment="env" />
 
     <target name="standalone-jar">
