@@ -285,7 +285,7 @@ public class ePADD {
 			CookieHandler.setDefault(new CookieManager(null, CookiePolicy.ACCEPT_ALL));
 
 			out.println("Testing for already running ePADD by probing " + url);
-			HttpURLConnection u = (HttpURLConnection) new URL(url).openConnection();
+			HttpURLConnection u = (HttpURLConnection) URI.create(url).toURL().openConnection();
 			if (u.getResponseCode() == 200)
 			{
 				u.disconnect();
@@ -308,7 +308,7 @@ public class ePADD {
 
             // actually this should not be a HTTP connection, it can be simply any connection
 			out.println ("Sending a kill request to " + url);
-			HttpURLConnection u = (HttpURLConnection) new URL(url).openConnection();
+			HttpURLConnection u = (HttpURLConnection) URI.create(url).toURL().openConnection();
 			u.connect();
 			if (u.getResponseCode() == 200)
 			{
@@ -447,6 +447,7 @@ public class ePADD {
 		}
 	}
 	
+	@SuppressWarnings("removal") // SecurityManager is deprecated for removal, but older JVMs may still have one installed
 	private static void parseOptions(String[] args) throws ParseException
 	{
 	    // set javawebstart.version to a dummy value if not already set (might happen when running with java -jar from cmd line)

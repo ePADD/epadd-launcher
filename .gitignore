@@ -7,3 +7,16 @@
 *~
 *.swp
 *.swo
+
+# Local runtime/build leftovers
+hs_err_pid*.log
+launch4j.log
+epadd_output.txt
+/dist/
+/epadd-settings/
+.idea/workspace.xml
+/epadd-standalone.jar
+/epadd-discovery-standalone.jar
+/epadd.exe
+/epadd-discovery.exe
+/epadd.dmg

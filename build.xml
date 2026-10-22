@@ -58,56 +58,73 @@
     </target>
 
 	<target name="exe">
-		<condition property="launch4j.dir" value="launch4j-3.3-macos10.7">
-		    <matches string="${os.version}" pattern="^10.[234567]." />
+		<!-- Ant properties are immutable, so the first matching condition wins. Mac must come before unix. -->
+		<condition property="launch4j.dir" value="launch4j-3.50-macos">
+		    <os family="mac"/>
 		</condition>
-		<condition property="launch4j.dir" value="launch4j-macos10.8">
-		    <matches string="${os.version}" pattern="^(10.8|10.9|10.10|10.11)" />
-		</condition>
-		<condition property="launch4j.dir" value="launch4j-3.12-macos">
-		    <matches string="${os.version}" pattern="^(10.12|10.13|10.14|10.15|10.16)" />
-		</condition>
-		<condition property="launch4j.dir" value="launch4j-3.8-win32">
+		<condition property="launch4j.dir" value="launch4j-3.50-win32">
 		    <os family="windows"/>
 		</condition>
-		<condition property="launch4j.dir" value="launch4j-3.8-linux">
+		<condition property="launch4j.dir" value="launch4j-3.50-linux">
 		    <os family="unix"/>
 		</condition>
-		<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask" classpath="${launch4j.dir}/launch4j.jar:${launch4j.dir}/lib/xstream-1.4.19.jar" />
+		<taskdef name="launch4j" classname="net.sf.launch4j.ant.Launch4jTask" classpath="${launch4j.dir}/launch4j.jar:${launch4j.dir}/lib/xstream.jar" />
 		<launch4j configFile="${launch4j.dir}/epadd.xml" />
 	</target>
 
-<taskdef name="bundleapp"
-	 classname="com.oracle.appbundler.AppBundlerTask"
-         classpath="${lib.dir}/appbundler-1.0.jar" /> 
+<!-- Builds epadd.dmg with jpackage. Must run on a Mac. The app runs on the CPU type of the bundled JDK (Apple Silicon or Intel).
+     jpackage.jdk: JDK 14 or later that provides the jpackage tool (default: JAVA_HOME)
+     runtime.jdk:  JDK 11 or later that is bundled into the app as its Java runtime (default: JAVA_HOME)
+     app.version:  version shown in Finder; up to three numbers, the first one greater than 0
+     All three can be set in local.properties or with -D. -->
+<property name="jpackage.jdk" location="${env.JAVA_HOME}" />
+<property name="runtime.jdk" location="${env.JAVA_HOME}" />
+<property name="app.version" value="1.0" />
 
-<!-- IMPORTANT: JAVA_HOME must be set correctly in .bashrc (e.g. export JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_45.jdk/Contents/Home/) for this task to work, otherwise it returns a cryptic Info.plist error -->
 <target name="macapp">
-    <mkdir dir="dist/epadd" /> <!-- dist/epadd because the vol. name on the dmg needs to be epadd and not dist. -->
-    <bundleapp outputdirectory="dist/epadd"
-        name="epadd"
-        displayname="epadd"
-        identifier="components.epadd"
-	icon="lib/epadd.icns"
-        mainclassname="edu.stanford.epadd.launcher.ePADD">
-	<runtime dir="${env.JAVA_HOME}" />
-        <classpath file="epadd-standalone.jar" />
-	<option value="-Xmx64g"/>
-	<option value="-splash:epadd-standalone.jar:splash-image.png"/>
-   </bundleapp>
-  <exec executable="hdiutil">
-        <arg value="create"/>
-        <arg value="epadd.dmg"/>
-        <arg value="-srcfolder"/>
-        <arg value="./dist/epadd"/>
-        <arg value="-ov"/>
-  </exec>
+    <fail message="macapp must run on macOS: jpackage can only build a .dmg on a Mac.">
+        <condition><not><os family="mac" /></not></condition>
+    </fail>
+    <fail message="JAVA_HOME is not set. Set it, or set jpackage.jdk and runtime.jdk in local.properties.">
+        <condition><or>
+            <contains string="${jpackage.jdk}" substring="env.JAVA_HOME" />
+            <contains string="${runtime.jdk}" substring="env.JAVA_HOME" />
+        </or></condition>
+    </fail>
+    <fail message="jpackage not found in ${jpackage.jdk}/bin. Set jpackage.jdk to a JDK 14 or later.">
+        <condition><not><available file="${jpackage.jdk}/bin/jpackage" /></not></condition>
+    </fail>
+
+    <!-- jpackage copies everything in the input folder into the app, so stage only what the app needs -->
+    <delete dir="${target.dir}/jpackage" />
+    <mkdir dir="${target.dir}/jpackage/input" />
+    <copy file="epadd-standalone.jar" todir="${target.dir}/jpackage/input" />
+    <copy file="${lib.dir}/splash-image.png" todir="${target.dir}/jpackage/input" />
+
+    <exec executable="${jpackage.jdk}/bin/jpackage" failonerror="true">
+        <arg value="--type" />                   <arg value="dmg" />
+        <arg value="--name" />                   <arg value="epadd" />
+        <arg value="--app-version" />            <arg value="${app.version}" />
+        <arg value="--mac-package-identifier" /> <arg value="components.epadd" />
+        <arg value="--icon" />                   <arg value="${lib.dir}/epadd.icns" />
+        <arg value="--input" />                  <arg value="${target.dir}/jpackage/input" />
+        <arg value="--main-jar" />               <arg value="epadd-standalone.jar" />
+        <arg value="--main-class" />             <arg value="edu.stanford.epadd.launcher.ePADD" />
+        <arg value="--runtime-image" />          <arg value="${runtime.jdk}" />
+        <arg value="--java-options" />           <arg value="-Xmx64g" />
+        <!-- the jar's SplashScreen-Image is ignored because the app is not started with java -jar -->
+        <arg value="--java-options" />           <arg value="-splash:$APPDIR/splash-image.png" />
+        <arg value="--dest" />                   <arg value="${target.dir}/jpackage/out" />
+    </exec>
+
+    <!-- jpackage names the file epadd-<version>.dmg -->
+    <move file="${target.dir}/jpackage/out/epadd-${app.version}.dmg" tofile="epadd.dmg" overwrite="true" />
 </target>
 
 <target name="both-mac" depends="macapp"></target>
 <target name="both-exe" depends="exe"></target>
 <target name="test"><echo message="foobar ${os.name} ${os.version}"/></target>
 
-<target name="release" depends="both-mac,both-exe"></target>
+<target name="release" depends="both-exe,both-mac"></target>
 
 </project>
