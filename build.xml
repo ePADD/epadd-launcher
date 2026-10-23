@@ -111,7 +111,7 @@
         <arg value="--main-jar" />               <arg value="epadd-standalone.jar" />
         <arg value="--main-class" />             <arg value="edu.stanford.epadd.launcher.ePADD" />
         <arg value="--runtime-image" />          <arg value="${runtime.jdk}" />
-        <arg value="--java-options" />           <arg value="-Xmx64g" />
+        <arg value="--java-options" />           <arg value="-XX:MaxRAMPercentage=75" />
         <!-- the jar's SplashScreen-Image is ignored because the app is not started with java -jar -->
         <arg value="--java-options" />           <arg value="-splash:$APPDIR/splash-image.png" />
         <arg value="--dest" />                   <arg value="${target.dir}/jpackage/out" />
